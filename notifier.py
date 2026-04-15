@@ -55,7 +55,6 @@ _TEMPLATES: dict[SignalType, str] = {
         "📊 {short_period}일 이동평균선이 {long_period}일 이동평균선을 <b>아래로 돌파</b>했습니다!\n"
         "\n"
         "• 기준일: {date}\n"
-        "• 52주 신고가 대비 하락률: <b>{drop_pct:.1f}%</b>\n"
         "• {short_period}일 MA: <b>{short_ma:.2f}</b>\n"
         "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
         "\n"
