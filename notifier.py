@@ -62,7 +62,7 @@ _TEMPLATES: dict[SignalType, str] = {
 }
 
 
-_52W_DROP_TEMPLATE = (
+_52W_DROP_10_TEMPLATE = (
     "🚨 <b>[52주 신고가 대비 10% 하락]</b> QQQ\n"
     "\n"
     "📉 현재가가 52주 신고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
@@ -73,7 +73,21 @@ _52W_DROP_TEMPLATE = (
     "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
     "• 기준일: {date}\n"
     "\n"
-    "💡 TQQQ 30% 매수!!"
+    "💡 TQQQ 총 보유금의 30% 매수!!"
+)
+
+_52W_DROP_20_TEMPLATE = (
+    "🔥 <b>[52주 신고가 대비 20% 하락]</b> QQQ\n"
+    "\n"
+    "📉 현재가가 52주 신고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
+    "\n"
+    "• 현재가: <b>{current_price:.2f}</b>\n"
+    "• 52주 신고가: <b>{high_52w:.2f}</b>\n"
+    "• {short_period}일 MA: <b>{short_ma:.2f}</b>\n"
+    "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
+    "• 기준일: {date}\n"
+    "\n"
+    "💡 TQQQ 총 보유금의 30% 추가 매수!!(총 60%)"
 )
 
 
@@ -97,8 +111,8 @@ def build_message(result: MAResult, state: dict) -> str:
     return message
 
 
-def build_52w_drop_message(result: MAResult) -> str:
-    return _52W_DROP_TEMPLATE.format(
+def _build_drop_message(template: str, result: MAResult) -> str:
+    return template.format(
         drop_pct=result.drop_pct * 100,
         current_price=result.current_price,
         high_52w=result.high_52w,
@@ -141,7 +155,11 @@ def notify(ma_result: MAResult, state: dict) -> None:
     # MA 신호 메시지 (매일 발송)
     send_telegram_message(build_message(ma_result, state))
 
-    # 52주 신고가 대비 10% 하락 시 추가 발송
-    if ma_result.is_52w_drop_alert:
-        logger.info("52주 고가 대비 %.2f%% 하락 — 추가 알림 발송", ma_result.drop_pct * 100)
-        send_telegram_message(build_52w_drop_message(ma_result))
+    # 52주 신고가 대비 20% 하락 시 발송 (10% 조건보다 먼저 체크)
+    if ma_result.is_52w_drop_20_alert:
+        logger.info("52주 고가 대비 %.2f%% 하락 — 20%% 하락 알림 발송", ma_result.drop_pct * 100)
+        send_telegram_message(_build_drop_message(_52W_DROP_20_TEMPLATE, ma_result))
+    # 52주 신고가 대비 10% 하락 시 발송 (20% 미만인 경우에만)
+    elif ma_result.is_52w_drop_10_alert:
+        logger.info("52주 고가 대비 %.2f%% 하락 — 10%% 하락 알림 발송", ma_result.drop_pct * 100)
+        send_telegram_message(_build_drop_message(_52W_DROP_10_TEMPLATE, ma_result))

@@ -21,8 +21,9 @@ from config import LONG_MA, SHORT_MA
 
 logger = logging.getLogger(__name__)
 
-TRADING_DAYS_1Y   = 252   # 52주 고가 계산 기준 거래일 수
-DROP_THRESHOLD    = 0.10  # 10% 하락 기준
+TRADING_DAYS_1Y    = 252  # 52주 고가 계산 기준 거래일 수
+DROP_THRESHOLD_10  = 0.10  # 10% 하락 기준
+DROP_THRESHOLD_20  = 0.20  # 20% 하락 기준
 
 SignalType = Literal["golden_cross", "dead_cross", "above", "below"]
 
@@ -38,7 +39,8 @@ class MAResult:
     current_price: float
     high_52w: float
     drop_pct: float          # 52주 고가 대비 하락률 (0.10 = 10%)
-    is_52w_drop_alert: bool  # 10% 이상 하락 시 True
+    is_52w_drop_10_alert: bool  # 10% 이상 하락 시 True
+    is_52w_drop_20_alert: bool  # 20% 이상 하락 시 True
 
 
 def calculate_signals(close_series: pd.Series) -> MAResult:
@@ -97,7 +99,12 @@ def calculate_signals(close_series: pd.Series) -> MAResult:
     else:
         signal = "below"
 
-    logger.info("MA 신호: %s | 52주고가 10%% 하락 알림: %s", signal, drop_pct >= DROP_THRESHOLD)
+    logger.info(
+        "MA 신호: %s | 52주고가 10%% 하락: %s | 20%% 하락: %s",
+        signal,
+        drop_pct >= DROP_THRESHOLD_10,
+        drop_pct >= DROP_THRESHOLD_20,
+    )
 
     return MAResult(
         signal=signal,
@@ -109,5 +116,6 @@ def calculate_signals(close_series: pd.Series) -> MAResult:
         current_price=current_price,
         high_52w=high_52w,
         drop_pct=drop_pct,
-        is_52w_drop_alert=drop_pct >= DROP_THRESHOLD,
+        is_52w_drop_10_alert=drop_pct >= DROP_THRESHOLD_10,
+        is_52w_drop_20_alert=drop_pct >= DROP_THRESHOLD_20,
     )
