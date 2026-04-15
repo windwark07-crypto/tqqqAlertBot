@@ -15,7 +15,7 @@ TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
 
 _TEMPLATES: dict[SignalType, str] = {
     "golden_cross": (
-        "🟢 <b>[QQQ 골든크로스 발생]\n"
+        "🟢 <b>[QQQ 골든크로스 발생]</b>\n"
         "\n"
         "📈 {short_period}일 이동평균선이 {long_period}일 이동평균선을 <b>위로 돌파</b>했습니다!\n"
         "\n"
@@ -27,7 +27,7 @@ _TEMPLATES: dict[SignalType, str] = {
         "💡 KODEX 미국나스닥100 레버리지(합성 H)(409820) 전액 매수!!\n"
     ),
     "dead_cross": (
-        "🔴 <b>[QQQ 데드크로스 발생]\n"
+        "🔴 <b>[QQQ 데드크로스 발생]</b>\n"
         "\n"
         "📉 {short_period}일 이동평균선이 {long_period}일 이동평균선을 <b>아래로 돌파</b>했습니다!\n"
         "\n"
@@ -39,7 +39,7 @@ _TEMPLATES: dict[SignalType, str] = {
         "⚠️ KODEX 미국나스닥100 레버리지(합성 H)(409820) 전액 매도!!"
     ),
     "above": (
-        "🔵 <b>[QQQ MA 현황]\n"
+        "🔵 <b>[QQQ MA 현황]</b>\n"
         "\n"
         "📊 {short_period}일 이동평균선이 {long_period}일 이동평균선을 <b>위로 돌파</b>했습니다!\n"
         "\n"
@@ -50,7 +50,7 @@ _TEMPLATES: dict[SignalType, str] = {
         "✅ 상승 추세 유지 홀딩 추천"
     ),
     "below": (
-        "⚫ <b>[QQQ MA 현황]\n"
+        "⚫ <b>[QQQ MA 현황]</b>\n"
         "\n"
         "📊 {short_period}일 이동평균선이 {long_period}일 이동평균선을 <b>아래로 돌파</b>했습니다!\n"
         "\n"
@@ -65,7 +65,7 @@ _TEMPLATES: dict[SignalType, str] = {
 
 _DROP_TEMPLATES: dict[int, str] = {
     10: (
-        "🚨 <b>[QQQ 52주 최고가 대비 10% 하락]\n"
+        "🚨 <b>[QQQ 52주 최고가 대비 10% 하락]</b>\n"
         "\n"
         "📉 현재가가 52주 최고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
         "\n"
@@ -76,7 +76,7 @@ _DROP_TEMPLATES: dict[int, str] = {
         "💡 KODEX 미국나스닥100 레버리지(합성 H)(409820) 총 보유금의 30% 매수!!"
     ),
     20: (
-        "🚨 <b>[QQQ 52주 최고가 대비 20% 하락]\n"
+        "🚨 <b>[QQQ 52주 최고가 대비 20% 하락]</b>\n"
         "\n"
         "📉 현재가가 52주 최고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
         "\n"
