@@ -8,6 +8,8 @@ import logging
 
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from config import LONG_MA, SYMBOL
 
@@ -25,6 +27,43 @@ HEADERS = {
 }
 
 
+def _build_session() -> requests.Session:
+    """지수 백오프 재시도 세션 생성."""
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=1,  # 1s, 2s, 4s 간격
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    return session
+
+
+_SESSION = _build_session()
+
+
+def _fetch_chart_result(symbol: str, params: dict) -> dict:
+    """Yahoo Finance Chart API를 호출하고 result[0]를 반환."""
+    url = BASE_URL.format(symbol=symbol)
+    logger.info("Yahoo Finance API 호출 중: symbol=%s", symbol)
+    response = _SESSION.get(url, headers=HEADERS, params=params, timeout=30)
+    response.raise_for_status()
+
+    data = response.json()
+    chart = data.get("chart", {})
+
+    if chart.get("error"):
+        raise ValueError(f"Yahoo Finance API 오류: {chart['error']}")
+
+    result = chart.get("result")
+    if not result:
+        raise ValueError(f"{symbol}: Yahoo Finance API 응답에 데이터가 없습니다.")
+
+    return result[0]
+
+
 def fetch_latest_close(symbol: str) -> float:
     """
     특정 심볼의 최근 종가 1개를 반환.
@@ -36,27 +75,8 @@ def fetch_latest_close(symbol: str) -> float:
         ValueError: 응답 오류 또는 데이터 없음
         requests.HTTPError: HTTP 오류
     """
-    url = BASE_URL.format(symbol=symbol)
-    params = {
-        "interval": "1d",
-        "range": "5d",
-    }
-
-    logger.info("Yahoo Finance API 호출 중: symbol=%s", symbol)
-    response = requests.get(url, headers=HEADERS, params=params, timeout=30)
-    response.raise_for_status()
-
-    data = response.json()
-
-    error = data.get("chart", {}).get("error")
-    if error:
-        raise ValueError(f"Yahoo Finance API 오류: {error}")
-
-    result = data.get("chart", {}).get("result")
-    if not result:
-        raise ValueError("Yahoo Finance API 응답에 데이터가 없습니다.")
-
-    closes = result[0].get("indicators", {}).get("quote", [{}])[0].get("close", [])
+    result = _fetch_chart_result(symbol, {"interval": "1d", "range": "5d"})
+    closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
     closes = [c for c in closes if c is not None]
 
     if not closes:
@@ -76,29 +96,10 @@ def fetch_daily_close() -> pd.Series:
         ValueError: 응답 오류 또는 데이터 부족
         requests.HTTPError: HTTP 오류
     """
-    url = BASE_URL.format(symbol=SYMBOL)
-    params = {
-        "interval": "1d",
-        "range": "2y",
-    }
+    result = _fetch_chart_result(SYMBOL, {"interval": "1d", "range": "2y"})
 
-    logger.info("Yahoo Finance API 호출 중: symbol=%s", SYMBOL)
-    response = requests.get(url, headers=HEADERS, params=params, timeout=30)
-    response.raise_for_status()
-
-    data = response.json()
-
-    # 오류 응답 확인
-    error = data.get("chart", {}).get("error")
-    if error:
-        raise ValueError(f"Yahoo Finance API 오류: {error}")
-
-    result = data.get("chart", {}).get("result")
-    if not result:
-        raise ValueError("Yahoo Finance API 응답에 데이터가 없습니다.")
-
-    timestamps = result[0].get("timestamp", [])
-    closes = result[0].get("indicators", {}).get("quote", [{}])[0].get("close", [])
+    timestamps = result.get("timestamp", [])
+    closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
 
     if not timestamps or not closes:
         raise ValueError("타임스탬프 또는 종가 데이터가 없습니다.")

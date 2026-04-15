@@ -13,11 +13,21 @@ try:
 except ImportError:
     pass
 
-# 필수 환경변수 (누락 시 KeyError 즉시 발생)
-TELEGRAM_BOT_TOKEN: str = os.environ["TELEGRAM_BOT_TOKEN"]
-TELEGRAM_CHAT_ID: str   = os.environ["TELEGRAM_CHAT_ID"]
+def _require_env(key: str) -> str:
+    value = os.getenv(key)
+    if not value:
+        raise KeyError(
+            f"필수 환경변수 '{key}'가 설정되지 않았습니다. "
+            "GitHub Secrets 또는 .env 파일을 확인하세요."
+        )
+    return value
 
-# 설정값
-SYMBOL: str   = "QQQ"
-SHORT_MA: int = 3    # 단기 이동평균 기간 (일)
-LONG_MA: int  = 163  # 장기 이동평균 기간 (일)
+
+# 필수 환경변수
+TELEGRAM_BOT_TOKEN: str = _require_env("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID: str   = _require_env("TELEGRAM_CHAT_ID")
+
+# 설정값 (환경변수로 오버라이드 가능)
+SYMBOL: str   = os.getenv("SYMBOL", "QQQ")
+SHORT_MA: int = int(os.getenv("SHORT_MA", "3"))    # 단기 이동평균 기간 (일)
+LONG_MA: int  = int(os.getenv("LONG_MA", "163"))   # 장기 이동평균 기간 (일)

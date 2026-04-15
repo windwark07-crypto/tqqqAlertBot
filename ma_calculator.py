@@ -21,7 +21,8 @@ from config import LONG_MA, SHORT_MA
 
 logger = logging.getLogger(__name__)
 
-TRADING_DAYS_1Y    = 252  # 52주 고가 계산 기준 거래일 수
+# 미국 주식 연간 거래일 수 (52주 × 5일 - 공휴일 약 10일 ≈ 252일)
+TRADING_DAYS_1Y    = 252
 DROP_THRESHOLD_10  = 0.10  # 10% 하락 기준
 DROP_THRESHOLD_20  = 0.20  # 20% 하락 기준
 

@@ -13,7 +13,7 @@ import sys
 
 from data_fetcher import fetch_daily_close, fetch_latest_close
 from ma_calculator import calculate_signals
-from notifier import notify_ma, notify_drop, notify_tqqq_partial_sell
+from notifier import dispatch_notification
 import state_manager
 
 logging.basicConfig(
@@ -40,37 +40,11 @@ def run() -> None:
 
         logger.info("[4/4] 텔레그램 알림 발송 (신호: %s)", ma_result.signal)
 
-        # 이벤트별 메시지 1개만 발송 (데드크로스는 항상 데드크로스 메시지만)
-        if ma_result.signal == "dead_cross":
-            notify_ma(ma_result, state)
-        elif ma_result.is_52w_drop_20_alert and not state.get("drop_20_alerted"):
-            notify_drop(ma_result, 20)
-            state["drop_20_alerted"] = True
-            state["drop_10_alerted"] = True
-        elif ma_result.is_52w_drop_10_alert and not state.get("drop_10_alerted"):
-            notify_drop(ma_result, 10)
-            state["drop_10_alerted"] = True
-        else:
-            if (
-                ma_result.signal == "above"
-                and not state.get("tqqq_25_alerted")
-                and state.get("last_golden_cross_tqqq_price")
-            ):
-                tqqq_price = fetch_latest_close("TQQQ")
-                buy_tqqq   = state["last_golden_cross_tqqq_price"]
-                rise_pct   = (tqqq_price - buy_tqqq) / buy_tqqq
-                if rise_pct >= 0.25:
-                    notify_tqqq_partial_sell(ma_result, tqqq_price, rise_pct, state)
-                    state["tqqq_25_alerted"] = True
-                else:
-                    notify_ma(ma_result, state)
-            else:
-                notify_ma(ma_result, state)
+        dispatch_notification(ma_result, state)
 
-        # 가격 회복 시 플래그 초기화
+        # 가격 회복 시 drop 플래그 초기화 (알림 발송 이후에 처리)
         if not ma_result.is_52w_drop_10_alert:
-            state["drop_10_alerted"] = False
-            state["drop_20_alerted"] = False
+            state_manager.reset_drop_flags(state)
         elif not ma_result.is_52w_drop_20_alert:
             state["drop_20_alerted"] = False
 
@@ -90,8 +64,7 @@ def run() -> None:
         logger.info("===== 작업 완료 =====")
 
     except KeyError as e:
-        logger.error("환경변수 누락: %s", e)
-        logger.error("GitHub Secrets 또는 .env 파일을 확인하세요.")
+        logger.error("예기치 않은 키 오류: %s — 환경변수 또는 state.json 키를 확인하세요.", e)
         sys.exit(1)
     except ValueError as e:
         logger.error("데이터/API 오류: %s", e)

@@ -10,7 +10,7 @@
 import sys
 import time
 from ma_calculator import MAResult
-from notifier import notify_ma, notify_drop, notify_tqqq_partial_sell
+from notifier import dispatch_notification
 
 # ── 시나리오별 state 정의 ──────────────────────────────────────
 STATE_DEFAULT = {
@@ -33,6 +33,7 @@ SCENARIOS = [
     {
         "no": 1,
         "name": "골든크로스 발생",
+        "expected": "골든크로스 메시지",
         "state": STATE_DEFAULT,
         "result": MAResult(
             signal="golden_cross",
@@ -51,6 +52,7 @@ SCENARIOS = [
     {
         "no": 2,
         "name": "데드크로스 발생",
+        "expected": "데드크로스 메시지",
         "state": STATE_DEFAULT,
         "result": MAResult(
             signal="dead_cross",
@@ -69,6 +71,7 @@ SCENARIOS = [
     {
         "no": 3,
         "name": "단기MA 위 (상승 추세 유지)",
+        "expected": "above 메시지",
         "state": STATE_DEFAULT,
         "result": MAResult(
             signal="above",
@@ -88,6 +91,7 @@ SCENARIOS = [
     {
         "no": "4-1",
         "name": "아래 -drop 10% 발생 전 (drop_pct < 10%)",
+        "expected": "below 메시지",
         "state": STATE_DEFAULT,
         "result": MAResult(
             signal="below",
@@ -106,6 +110,7 @@ SCENARIOS = [
     {
         "no": "4-2",
         "name": "아래 -drop 10% 상황이지만 이미 발송됨",
+        "expected": "below 메시지 (drop 알림 없음)",
         "state": STATE_DROP10_SENT,
         "result": MAResult(
             signal="below",
@@ -124,6 +129,7 @@ SCENARIOS = [
     {
         "no": "4-3",
         "name": "아래 -drop 20% 발생 전 (10~20% 구간, 10% 이미 발송됨)",
+        "expected": "below 메시지 (20% 미달성)",
         "state": STATE_DROP10_SENT,
         "result": MAResult(
             signal="below",
@@ -142,6 +148,7 @@ SCENARIOS = [
     {
         "no": "4-4",
         "name": "아래 -drop 20% 상황이지만 이미 발송됨",
+        "expected": "below 메시지 (drop 알림 없음)",
         "state": STATE_DROP20_SENT,
         "result": MAResult(
             signal="below",
@@ -161,6 +168,7 @@ SCENARIOS = [
     {
         "no": 5,
         "name": "데드크로스 + 52주 신고가 대비 10% 하락",
+        "expected": "데드크로스 메시지 (drop 알림 없음, dead_cross 우선)",
         "state": STATE_DEFAULT,
         "result": MAResult(
             signal="dead_cross",
@@ -179,6 +187,7 @@ SCENARIOS = [
     {
         "no": 6,
         "name": "52주 신고가 대비 10% 하락 첫 발생",
+        "expected": "52주 최고가 대비 10% 하락 메시지",
         "state": STATE_DEFAULT,
         "result": MAResult(
             signal="above",
@@ -197,6 +206,7 @@ SCENARIOS = [
     {
         "no": 7,
         "name": "52주 신고가 대비 20% 하락 첫 발생",
+        "expected": "52주 최고가 대비 20% 하락 메시지",
         "state": STATE_DROP10_SENT,
         "result": MAResult(
             signal="below",
@@ -215,9 +225,9 @@ SCENARIOS = [
     # ── TQQQ 25% 상승 ─────────────────────────────────────────
     {
         "no": 8,
-        "name": "TQQQ 25% 이상 상승 첫 발생",
-        "state": STATE_DEFAULT,           # last_golden_cross_tqqq_price=60.00
-        "tqqq_price": 76.00,              # 60.00 대비 +26.7%
+        "name": "QQQ 8% 이상 상승 첫 발생",
+        "expected": "QQQ 8% 상승 메시지 (매도 알림, +24.5%)",
+        "state": STATE_DEFAULT,           # last_golden_cross_price=510.00
         "result": MAResult(
             signal="above",
             short_ma_value=630.00,
@@ -234,9 +244,9 @@ SCENARIOS = [
     },
     {
         "no": 9,
-        "name": "TQQQ 25% 이상 상승이지만 이미 발송됨",
+        "name": "QQQ 8% 이상 상승이지만 이미 발송됨",
+        "expected": "above 메시지 (QQQ 8% 알림 없음)",
         "state": STATE_TQQQ25_SENT,       # tqqq_25_alerted=True
-        "tqqq_price": 78.00,              # 60.00 대비 +30%
         "result": MAResult(
             signal="above",
             short_ma_value=632.00,
@@ -255,38 +265,18 @@ SCENARIOS = [
 
 
 def run_scenario(scenario: dict) -> None:
-    no     = scenario["no"]
-    name   = scenario["name"]
-    result = scenario["result"]
-    state  = scenario["state"]
-    print(f"\n[{no}] {name} 테스트 중...")
+    no       = scenario["no"]
+    name     = scenario["name"]
+    expected = scenario.get("expected", "")
+    result   = scenario["result"]
+    state    = scenario["state"]
+    print(f"\n[{no}] {name}")
+    print(f"     기대 결과: {expected}")
+    print(f"     테스트 중...")
 
-    if result.signal == "dead_cross":
-        notify_ma(result, state)
-    elif result.is_52w_drop_20_alert and not state.get("drop_20_alerted"):
-        notify_drop(result, 20)
-    elif result.is_52w_drop_10_alert and not state.get("drop_10_alerted"):
-        notify_drop(result, 10)
-    else:
-        if (
-            result.signal == "above"
-            and not state.get("tqqq_25_alerted")
-            and state.get("last_golden_cross_tqqq_price")
-        ):
-            tqqq_price = scenario.get("tqqq_price")
-            if tqqq_price is not None:
-                buy_tqqq = state["last_golden_cross_tqqq_price"]
-                rise_pct = (tqqq_price - buy_tqqq) / buy_tqqq
-                if rise_pct >= 0.25:
-                    notify_tqqq_partial_sell(result, tqqq_price, rise_pct, state)
-                else:
-                    notify_ma(result, state)
-            else:
-                notify_ma(result, state)
-        else:
-            notify_ma(result, state)
+    dispatch_notification(result, state)
 
-    print(f"[{no}] 발송 완료")
+    print(f"     발송 완료")
 
 
 def main() -> None:
