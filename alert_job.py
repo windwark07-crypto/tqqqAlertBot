@@ -50,11 +50,12 @@ def run() -> None:
         elif kind == NotificationKind.QQQ_RISE:
             state_manager.set_qqq_8pct_alerted(state)
 
-        # 가격 회복 시 drop 플래그 초기화
-        if not ma_result.is_52w_drop_10_alert:
-            state_manager.reset_drop_flags(state)
-        elif not ma_result.is_52w_drop_20_alert:
-            state_manager.reset_drop_20_flag(state)
+        # 가격 회복 시 drop 플래그 초기화 (dead_cross 시에는 초기화 제외)
+        if kind != NotificationKind.DEAD_CROSS:
+            if not ma_result.is_52w_drop_10_alert:
+                state_manager.reset_drop_flags(state)
+            elif not ma_result.is_52w_drop_20_alert:
+                state_manager.reset_drop_20_flag(state)
 
         # 크로스 발생 시 state 업데이트
         if ma_result.signal == "golden_cross":
