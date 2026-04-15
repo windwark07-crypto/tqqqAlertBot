@@ -15,34 +15,33 @@ TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
 
 _TEMPLATES: dict[SignalType, str] = {
     "golden_cross": (
-        "🟢 <b>[골든크로스 발생]</b> QQQ\n"
+        "🟢 <b>[QQQ 골든크로스 발생]\n"
         "\n"
-        "📈 {short_period}일 MA가 {long_period}일 MA를 <b>위로 돌파</b>했습니다!\n"
+        "📈 {short_period}일 이동평균선이 {long_period}일 이동평균선을 <b>위로 돌파</b>했습니다!\n"
         "\n"
         "• 기준일: {date}\n"
         "• 기준가: <b>{current_price:.2f}</b>\n"
         "• {short_period}일 MA: <b>{short_ma:.2f}</b>\n"
         "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
         "\n"
-        "💡 TQQQ 전액 매수!!\n"
-        "🗓 매수일로 기록됩니다."
+        "💡 KODEX 미국나스닥100 레버리지(합성 H)(409820) 전액 매수!!\n"
     ),
     "dead_cross": (
-        "🔴 <b>[데드크로스 발생]</b> QQQ\n"
+        "🔴 <b>[QQQ 데드크로스 발생]\n"
         "\n"
-        "📉 {short_period}일 MA가 {long_period}일 MA를 <b>아래로 돌파</b>했습니다!\n"
+        "📉 {short_period}일 이동평균선이 {long_period}일 이동평균선을 <b>아래로 돌파</b>했습니다!\n"
         "\n"
         "• 기준일: {date}\n"
         "• 기준가: <b>{current_price:.2f}</b>\n"
         "• {short_period}일 MA: <b>{short_ma:.2f}</b>\n"
         "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
         "\n"
-        "⚠️ TQQQ 전액 매도!!"
+        "⚠️ KODEX 미국나스닥100 레버리지(합성 H)(409820) 전액 매도!!"
     ),
     "above": (
-        "🔵 <b>[MA 현황]</b> QQQ\n"
+        "🔵 <b>[QQQ MA 현황]\n"
         "\n"
-        "📊 {short_period}일 MA가 {long_period}일 MA <b>위</b>에 있습니다.\n"
+        "📊 {short_period}일 이동평균선이 {long_period}일 이동평균선을 <b>위로 돌파</b>했습니다!\n"
         "\n"
         "• 기준일: {date}\n"
         "• {short_period}일 MA: <b>{short_ma:.2f}</b>\n"
@@ -51,9 +50,9 @@ _TEMPLATES: dict[SignalType, str] = {
         "✅ 상승 추세 유지 홀딩 추천"
     ),
     "below": (
-        "⚫ <b>[MA 현황]</b> QQQ\n"
+        "⚫ <b>[QQQ MA 현황]\n"
         "\n"
-        "📊 {short_period}일 MA가 {long_period}일 MA <b>아래</b>에 있습니다.\n"
+        "📊 {short_period}일 이동평균선이 {long_period}일 이동평균선을 <b>아래로 돌파</b>했습니다!\n"
         "\n"
         "• 기준일: {date}\n"
         "• 52주 신고가 대비 하락률: <b>{drop_pct:.1f}%</b>\n"
@@ -67,30 +66,26 @@ _TEMPLATES: dict[SignalType, str] = {
 
 _DROP_TEMPLATES: dict[int, str] = {
     10: (
-        "🚨 <b>[52주 신고가 대비 10% 하락]</b> QQQ\n"
+        "🚨 <b>[QQQ 52주 최고가 대비 10% 하락]\n"
         "\n"
-        "📉 현재가가 52주 신고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
+        "📉 현재가가 52주 최고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
         "\n"
-        "• 현재가: <b>{current_price:.2f}</b>\n"
-        "• 52주 신고가: <b>{high_52w:.2f}</b>\n"
-        "• {short_period}일 MA: <b>{short_ma:.2f}</b>\n"
-        "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
         "• 기준일: {date}\n"
+        "• 현재가: <b>{current_price:.2f}</b>\n"
+        "• 52주 최고가: <b>{high_52w:.2f}</b>\n"
         "\n"
-        "💡 TQQQ 총 보유금의 30% 매수!!"
+        "💡 KODEX 미국나스닥100 레버리지(합성 H)(409820) 총 보유금의 30% 매수!!"
     ),
     20: (
-        "🔥 <b>[52주 신고가 대비 20% 하락]</b> QQQ\n"
+        "🚨 <b>[QQQ 52주 최고가 대비 20% 하락]\n"
         "\n"
-        "📉 현재가가 52주 신고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
+        "📉 현재가가 52주 최고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
         "\n"
-        "• 현재가: <b>{current_price:.2f}</b>\n"
-        "• 52주 신고가: <b>{high_52w:.2f}</b>\n"
-        "• {short_period}일 MA: <b>{short_ma:.2f}</b>\n"
-        "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
         "• 기준일: {date}\n"
+        "• 현재가: <b>{current_price:.2f}</b>\n"
+        "• 52주 최고가: <b>{high_52w:.2f}</b>\n"
         "\n"
-        "💡 TQQQ 총 보유금의 30% 추가 매수!!(총 60%)"
+        "💡 KODEX 미국나스닥100 레버리지(합성 H)(409820) 총 보유금의 30% 추가 매수!!(총 60%)"
     ),
 }
 
@@ -180,7 +175,7 @@ _TQQQ_25_TEMPLATE = (
     "• QQQ {short_period}일 MA: <b>{short_ma:.2f}</b>\n"
     "• QQQ {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
     "\n"
-    "💡 TQQQ 총 보유량의 30% 매도!!"
+    "💡 KODEX 미국나스닥100 레버리지(합성 H)(409820) 총 보유량의 30% 매도!!"
 )
 
 
