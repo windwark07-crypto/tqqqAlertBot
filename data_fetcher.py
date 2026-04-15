@@ -25,6 +25,46 @@ HEADERS = {
 }
 
 
+def fetch_latest_close(symbol: str) -> float:
+    """
+    특정 심볼의 최근 종가 1개를 반환.
+
+    Returns:
+        float: 최근 종가
+
+    Raises:
+        ValueError: 응답 오류 또는 데이터 없음
+        requests.HTTPError: HTTP 오류
+    """
+    url = BASE_URL.format(symbol=symbol)
+    params = {
+        "interval": "1d",
+        "range": "5d",
+    }
+
+    logger.info("Yahoo Finance API 호출 중: symbol=%s", symbol)
+    response = requests.get(url, headers=HEADERS, params=params, timeout=30)
+    response.raise_for_status()
+
+    data = response.json()
+
+    error = data.get("chart", {}).get("error")
+    if error:
+        raise ValueError(f"Yahoo Finance API 오류: {error}")
+
+    result = data.get("chart", {}).get("result")
+    if not result:
+        raise ValueError("Yahoo Finance API 응답에 데이터가 없습니다.")
+
+    closes = result[0].get("indicators", {}).get("quote", [{}])[0].get("close", [])
+    closes = [c for c in closes if c is not None]
+
+    if not closes:
+        raise ValueError(f"{symbol} 종가 데이터가 없습니다.")
+
+    return float(closes[-1])
+
+
 def fetch_daily_close() -> pd.Series:
     """
     QQQ 일별 종가(Close)를 날짜 오름차순 pd.Series로 반환.

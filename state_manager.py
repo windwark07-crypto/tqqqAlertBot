@@ -13,12 +13,14 @@ logger = logging.getLogger(__name__)
 STATE_FILE = Path(__file__).parent / "state.json"
 
 _DEFAULT_STATE: dict = {
-    "last_golden_cross_date": None,   # 마지막 골든크로스 날짜 (YYYY-MM-DD)
-    "last_golden_cross_price": None,  # 골든크로스 당일 현재가
-    "last_dead_cross_date": None,     # 마지막 데드크로스 날짜
-    "last_dead_cross_price": None,    # 데드크로스 당일 현재가
-    "drop_10_alerted": False,         # 10% 하락 알림 발송 여부 (가격 회복 시 초기화)
-    "drop_20_alerted": False,         # 20% 하락 알림 발송 여부 (가격 회복 시 초기화)
+    "last_golden_cross_date": None,        # 마지막 골든크로스 날짜 (YYYY-MM-DD)
+    "last_golden_cross_price": None,       # 골든크로스 당일 QQQ 현재가
+    "last_golden_cross_tqqq_price": None,  # 골든크로스 당일 TQQQ 종가
+    "last_dead_cross_date": None,          # 마지막 데드크로스 날짜
+    "last_dead_cross_price": None,         # 데드크로스 당일 현재가
+    "drop_10_alerted": False,              # 10% 하락 알림 발송 여부 (가격 회복 시 초기화)
+    "drop_20_alerted": False,              # 20% 하락 알림 발송 여부 (가격 회복 시 초기화)
+    "tqqq_25_alerted": False,              # TQQQ 매수가 대비 25% 상승 알림 발송 여부
 }
 
 
@@ -38,13 +40,23 @@ def save(state: dict) -> None:
     logger.info("state.json 저장 완료: %s", state)
 
 
-def update_golden_cross(state: dict, date: str, price: float) -> dict:
-    state["last_golden_cross_date"]  = date
-    state["last_golden_cross_price"] = round(price, 2)
+def update_golden_cross(state: dict, date: str, price: float, tqqq_price: float) -> dict:
+    state["last_golden_cross_date"]        = date
+    state["last_golden_cross_price"]       = round(price, 2)
+    state["last_golden_cross_tqqq_price"]  = round(tqqq_price, 2)
+    state["last_dead_cross_date"]          = None
+    state["last_dead_cross_price"]         = None
+    state["drop_10_alerted"]               = False
+    state["drop_20_alerted"]               = False
+    state["tqqq_25_alerted"]               = False
     return state
 
 
 def update_dead_cross(state: dict, date: str, price: float) -> dict:
-    state["last_dead_cross_date"]  = date
-    state["last_dead_cross_price"] = round(price, 2)
+    state["last_dead_cross_date"]         = date
+    state["last_dead_cross_price"]        = round(price, 2)
+    state["last_golden_cross_date"]       = None
+    state["last_golden_cross_price"]      = None
+    state["last_golden_cross_tqqq_price"] = None
+    state["tqqq_25_alerted"]              = False
     return state

@@ -10,20 +10,23 @@
 import sys
 import time
 from ma_calculator import MAResult
-from notifier import notify_ma, notify_drop
+from notifier import notify_ma, notify_drop, notify_tqqq_partial_sell
 
 # ── 시나리오별 state 정의 ──────────────────────────────────────
 STATE_DEFAULT = {
     "last_golden_cross_date": "2026-01-15",
     "last_golden_cross_price": 510.00,
+    "last_golden_cross_tqqq_price": 60.00,
     "last_dead_cross_date": None,
     "last_dead_cross_price": None,
     "drop_10_alerted": False,
     "drop_20_alerted": False,
+    "tqqq_25_alerted": False,
 }
 
-STATE_DROP10_SENT = {**STATE_DEFAULT, "drop_10_alerted": True,  "drop_20_alerted": False}
-STATE_DROP20_SENT = {**STATE_DEFAULT, "drop_10_alerted": True,  "drop_20_alerted": True}
+STATE_DROP10_SENT   = {**STATE_DEFAULT, "drop_10_alerted": True,  "drop_20_alerted": False}
+STATE_DROP20_SENT   = {**STATE_DEFAULT, "drop_10_alerted": True,  "drop_20_alerted": True}
+STATE_TQQQ25_SENT   = {**STATE_DEFAULT, "tqqq_25_alerted": True}
 
 # ── 시나리오 정의 ──────────────────────────────────────────────
 SCENARIOS = [
@@ -209,6 +212,45 @@ SCENARIOS = [
             is_52w_drop_20_alert=True,
         ),
     },
+    # ── TQQQ 25% 상승 ─────────────────────────────────────────
+    {
+        "no": 8,
+        "name": "TQQQ 25% 이상 상승 첫 발생",
+        "state": STATE_DEFAULT,           # last_golden_cross_tqqq_price=60.00
+        "tqqq_price": 76.00,              # 60.00 대비 +26.7%
+        "result": MAResult(
+            signal="above",
+            short_ma_value=630.00,
+            long_ma_value=610.00,
+            today_date="2026-04-14",
+            short_period=3,
+            long_period=163,
+            current_price=635.00,
+            high_52w=638.00,
+            drop_pct=0.005,
+            is_52w_drop_10_alert=False,
+            is_52w_drop_20_alert=False,
+        ),
+    },
+    {
+        "no": 9,
+        "name": "TQQQ 25% 이상 상승이지만 이미 발송됨",
+        "state": STATE_TQQQ25_SENT,       # tqqq_25_alerted=True
+        "tqqq_price": 78.00,              # 60.00 대비 +30%
+        "result": MAResult(
+            signal="above",
+            short_ma_value=632.00,
+            long_ma_value=612.00,
+            today_date="2026-04-14",
+            short_period=3,
+            long_period=163,
+            current_price=637.00,
+            high_52w=640.00,
+            drop_pct=0.005,
+            is_52w_drop_10_alert=False,
+            is_52w_drop_20_alert=False,
+        ),
+    },
 ]
 
 
@@ -226,7 +268,23 @@ def run_scenario(scenario: dict) -> None:
     elif result.is_52w_drop_10_alert and not state.get("drop_10_alerted"):
         notify_drop(result, 10)
     else:
-        notify_ma(result, state)
+        if (
+            result.signal == "above"
+            and not state.get("tqqq_25_alerted")
+            and state.get("last_golden_cross_tqqq_price")
+        ):
+            tqqq_price = scenario.get("tqqq_price")
+            if tqqq_price is not None:
+                buy_tqqq = state["last_golden_cross_tqqq_price"]
+                rise_pct = (tqqq_price - buy_tqqq) / buy_tqqq
+                if rise_pct >= 0.25:
+                    notify_tqqq_partial_sell(result, tqqq_price, rise_pct, state)
+                else:
+                    notify_ma(result, state)
+            else:
+                notify_ma(result, state)
+        else:
+            notify_ma(result, state)
 
     print(f"[{no}] 발송 완료")
 

@@ -167,3 +167,37 @@ def notify_drop(ma_result: MAResult, level: int) -> None:
     """52주 신고가 대비 하락 알림 발송. level: 10 또는 20"""
     logger.info("52주 고가 대비 %.2f%% 하락 — %d%% 하락 알림 발송", ma_result.drop_pct * 100, level)
     send_telegram_message(_build_drop_message(_DROP_TEMPLATES[level], ma_result))
+
+
+_TQQQ_25_TEMPLATE = (
+    "💰 <b>[TQQQ 25% 상승]</b> TQQQ\n"
+    "\n"
+    "📈 TQQQ가 매수가 대비 <b>{rise_pct:.1f}% 상승</b>했습니다!\n"
+    "\n"
+    "• 기준일: {date}\n"
+    "• 현재가: <b>{tqqq_price:.2f}</b>\n"
+    "• 매수가 (골든크로스일): <b>{buy_tqqq_price:.2f}</b>\n"
+    "• QQQ {short_period}일 MA: <b>{short_ma:.2f}</b>\n"
+    "• QQQ {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
+    "\n"
+    "💡 TQQQ 총 보유량의 30% 매도!!"
+)
+
+
+def notify_tqqq_partial_sell(
+    ma_result: MAResult, tqqq_price: float, rise_pct: float, state: dict
+) -> None:
+    """TQQQ 25% 상승 시 일부 매도 알림 발송."""
+    buy_tqqq_price = state.get("last_golden_cross_tqqq_price", 0.0)
+    text = _TQQQ_25_TEMPLATE.format(
+        rise_pct=rise_pct * 100,
+        date=ma_result.today_date,
+        tqqq_price=tqqq_price,
+        buy_tqqq_price=buy_tqqq_price,
+        short_period=ma_result.short_period,
+        long_period=ma_result.long_period,
+        short_ma=ma_result.short_ma_value,
+        long_ma=ma_result.long_ma_value,
+    )
+    logger.info("TQQQ %.2f%% 상승 — 일부 매도 알림 발송", rise_pct * 100)
+    send_telegram_message(text)

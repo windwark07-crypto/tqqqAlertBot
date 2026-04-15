@@ -11,9 +11,9 @@ QQQ 이동평균선 알림 메인 실행 파이프라인.
 import logging
 import sys
 
-from data_fetcher import fetch_daily_close
+from data_fetcher import fetch_daily_close, fetch_latest_close
 from ma_calculator import calculate_signals
-from notifier import notify_ma, notify_drop
+from notifier import notify_ma, notify_drop, notify_tqqq_partial_sell
 import state_manager
 
 logging.basicConfig(
@@ -51,7 +51,21 @@ def run() -> None:
             notify_drop(ma_result, 10)
             state["drop_10_alerted"] = True
         else:
-            notify_ma(ma_result, state)
+            if (
+                ma_result.signal == "above"
+                and not state.get("tqqq_25_alerted")
+                and state.get("last_golden_cross_tqqq_price")
+            ):
+                tqqq_price = fetch_latest_close("TQQQ")
+                buy_tqqq   = state["last_golden_cross_tqqq_price"]
+                rise_pct   = (tqqq_price - buy_tqqq) / buy_tqqq
+                if rise_pct >= 0.25:
+                    notify_tqqq_partial_sell(ma_result, tqqq_price, rise_pct, state)
+                    state["tqqq_25_alerted"] = True
+                else:
+                    notify_ma(ma_result, state)
+            else:
+                notify_ma(ma_result, state)
 
         # 가격 회복 시 플래그 초기화
         if not ma_result.is_52w_drop_10_alert:
@@ -62,8 +76,9 @@ def run() -> None:
 
         # 크로스 발생 시 state 업데이트
         if ma_result.signal == "golden_cross":
+            tqqq_price = fetch_latest_close("TQQQ")
             state = state_manager.update_golden_cross(
-                state, ma_result.today_date, ma_result.current_price
+                state, ma_result.today_date, ma_result.current_price, tqqq_price
             )
         elif ma_result.signal == "dead_cross":
             state = state_manager.update_dead_cross(
