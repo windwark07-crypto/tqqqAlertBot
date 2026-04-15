@@ -1,0 +1,10 @@
+{
+  "last_golden_cross_date": null,
+  "last_golden_cross_price": null,
+  "last_golden_cross_tqqq_price": null,
+  "last_dead_cross_date": null,
+  "last_dead_cross_price": null,
+  "drop_10_alerted": false,
+  "drop_20_alerted": false,
+  "tqqq_25_alerted": false
+}
