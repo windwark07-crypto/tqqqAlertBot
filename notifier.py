@@ -23,7 +23,7 @@ _TEMPLATES: dict[SignalType, str] = {
         "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
         "• 기준일: {date}\n"
         "\n"
-        "💡 TQQQ 시가 매수!!"
+        "💡 TQQQ 전액 매수!!"
     ),
     "dead_cross": (
         "🔴 <b>[데드크로스 발생]</b> QQQ\n"
@@ -34,7 +34,7 @@ _TEMPLATES: dict[SignalType, str] = {
         "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
         "• 기준일: {date}\n"
         "\n"
-        "⚠️ TQQQ 시가 매도!!"
+        "⚠️ TQQQ 전액 매도!!"
     ),
     "above": (
         "🔵 <b>[MA 현황]</b> QQQ\n"
@@ -45,7 +45,7 @@ _TEMPLATES: dict[SignalType, str] = {
         "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
         "• 기준일: {date}\n"
         "\n"
-        "✅ 상승 추세 유지 중 홀딩 추천"
+        "✅ 상승 추세 유지 홀딩 추천"
     ),
     "below": (
         "⚫ <b>[MA 현황]</b> QQQ\n"
@@ -56,9 +56,22 @@ _TEMPLATES: dict[SignalType, str] = {
         "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
         "• 기준일: {date}\n"
         "\n"
-        "⚠️ 하락 추세 주의 관망 추천"
+        "⚠️ 하락 추세 유지 관망 추천"
     ),
 }
+
+
+_52W_DROP_TEMPLATE = (
+    "🚨 <b>[52주 신고가 대비 10% 하락]</b> QQQ\n"
+    "\n"
+    "📉 현재가가 52주 신고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
+    "\n"
+    "• 현재가: <b>{current_price:.2f}</b>\n"
+    "• 52주 신고가: <b>{high_52w:.2f}</b>\n"
+    "• 기준일: {date}\n"
+    "\n"
+    "💡 TQQQ 30% 매수!"
+)
 
 
 def build_message(result: MAResult) -> str:
@@ -68,6 +81,15 @@ def build_message(result: MAResult) -> str:
         long_period=result.long_period,
         short_ma=result.short_ma_value,
         long_ma=result.long_ma_value,
+        date=result.today_date,
+    )
+
+
+def build_52w_drop_message(result: MAResult) -> str:
+    return _52W_DROP_TEMPLATE.format(
+        drop_pct=result.drop_pct * 100,
+        current_price=result.current_price,
+        high_52w=result.high_52w,
         date=result.today_date,
     )
 
@@ -100,5 +122,10 @@ def send_telegram_message(text: str) -> None:
 
 
 def notify(ma_result: MAResult) -> None:
-    message = build_message(ma_result)
-    send_telegram_message(message)
+    # MA 신호 메시지 (매일 발송)
+    send_telegram_message(build_message(ma_result))
+
+    # 52주 신고가 대비 10% 하락 시 추가 발송
+    if ma_result.is_52w_drop_alert:
+        logger.info("52주 고가 대비 %.2f%% 하락 — 추가 알림 발송", ma_result.drop_pct * 100)
+        send_telegram_message(build_52w_drop_message(ma_result))

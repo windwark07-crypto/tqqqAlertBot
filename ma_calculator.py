@@ -6,6 +6,10 @@
   - 데드크로스: 어제 short_ma >= long_ma  AND  오늘 short_ma < long_ma
   - 위(지속):   크로스 없이 오늘 short_ma > long_ma
   - 아래(지속): 크로스 없이 오늘 short_ma <= long_ma
+
+52주 고가 대비 하락 감지:
+  - 최근 252 거래일 종가 최고값 기준
+  - 현재가가 52주 고가 대비 10% 이상 하락 시 매수 알림
 """
 import logging
 from dataclasses import dataclass
@@ -16,6 +20,9 @@ import pandas as pd
 from config import LONG_MA, SHORT_MA
 
 logger = logging.getLogger(__name__)
+
+TRADING_DAYS_1Y   = 252   # 52주 고가 계산 기준 거래일 수
+DROP_THRESHOLD    = 0.10  # 10% 하락 기준
 
 SignalType = Literal["golden_cross", "dead_cross", "above", "below"]
 
@@ -28,17 +35,21 @@ class MAResult:
     today_date: str
     short_period: int
     long_period: int
+    current_price: float
+    high_52w: float
+    drop_pct: float          # 52주 고가 대비 하락률 (0.10 = 10%)
+    is_52w_drop_alert: bool  # 10% 이상 하락 시 True
 
 
 def calculate_signals(close_series: pd.Series) -> MAResult:
     """
-    종가 Series에서 이동평균을 계산하고 신호를 감지.
+    종가 Series에서 이동평균 및 52주 고가 대비 하락률을 계산.
 
     Args:
         close_series: 날짜 오름차순 종가 pd.Series
 
     Returns:
-        MAResult: 신호 타입 및 MA 수치 포함
+        MAResult: 신호 타입, MA 수치, 52주 고가 분석 포함
 
     Raises:
         ValueError: 데이터 부족으로 MA 계산 불가
@@ -59,15 +70,22 @@ def calculate_signals(close_series: pd.Series) -> MAResult:
     long_yesterday  = float(recent_long.iloc[0])
     long_today      = float(recent_long.iloc[1])
 
-    today_date = close_series.index[-1].strftime("%Y-%m-%d")
+    today_date    = close_series.index[-1].strftime("%Y-%m-%d")
+    current_price = float(close_series.iloc[-1])
+
+    # 52주 고가: 최근 252 거래일 종가 최고값
+    lookback      = min(TRADING_DAYS_1Y, len(close_series))
+    high_52w      = float(close_series.iloc[-lookback:].max())
+    drop_pct      = (high_52w - current_price) / high_52w
 
     logger.info(
-        "[%s] %d일MA=%.4f | %d일MA=%.4f | 전일 %d일MA=%.4f | 전일 %d일MA=%.4f",
+        "[%s] %d일MA=%.4f | %d일MA=%.4f | 현재가=%.2f | 52주고가=%.2f | 고가대비하락=%.2f%%",
         today_date,
         SHORT_MA, short_today,
         LONG_MA,  long_today,
-        SHORT_MA, short_yesterday,
-        LONG_MA,  long_yesterday,
+        current_price,
+        high_52w,
+        drop_pct * 100,
     )
 
     if short_yesterday <= long_yesterday and short_today > long_today:
@@ -79,7 +97,7 @@ def calculate_signals(close_series: pd.Series) -> MAResult:
     else:
         signal = "below"
 
-    logger.info("감지된 신호: %s", signal)
+    logger.info("MA 신호: %s | 52주고가 10%% 하락 알림: %s", signal, drop_pct >= DROP_THRESHOLD)
 
     return MAResult(
         signal=signal,
@@ -88,4 +106,8 @@ def calculate_signals(close_series: pd.Series) -> MAResult:
         today_date=today_date,
         short_period=SHORT_MA,
         long_period=LONG_MA,
+        current_price=current_price,
+        high_52w=high_52w,
+        drop_pct=drop_pct,
+        is_52w_drop_alert=drop_pct >= DROP_THRESHOLD,
     )
