@@ -69,7 +69,7 @@ _DROP_TEMPLATES: dict[int, str] = {
     10: (
         "🚨 <b>[나스닥100 52주 최고가 대비 10% 하락]</b>\n"
         "\n"
-        "📉 현재가가 52주 최고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
+        "📉 금일 종가 52주 최고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
         "\n"
         "• 기준일: {date}\n"
         "• 현재가: <b>{current_price:.2f}</b>\n"
@@ -80,7 +80,7 @@ _DROP_TEMPLATES: dict[int, str] = {
     20: (
         "🚨 <b>[나스닥100 52주 최고가 대비 20% 하락]</b>\n"
         "\n"
-        "📉 현재가가 52주 최고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
+        "📉 금일 종가가 52주 최고가 대비 <b>{drop_pct:.1f}% 하락</b>했습니다.\n"
         "\n"
         "• 기준일: {date}\n"
         "• 현재가: <b>{current_price:.2f}</b>\n"
