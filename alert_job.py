@@ -13,7 +13,7 @@ import sys
 
 from data_fetcher import fetch_daily_close
 from ma_calculator import calculate_signals
-from notifier import notify
+from notifier import notify_ma, notify_drop
 import state_manager
 
 logging.basicConfig(
@@ -39,19 +39,38 @@ def run() -> None:
         state = state_manager.load()
 
         logger.info("[4/4] 텔레그램 알림 발송 (신호: %s)", ma_result.signal)
-        notify(ma_result, state)
 
-        # 골든크로스/데드크로스 발생 시 state.json 업데이트
+        # 이벤트별 메시지 1개만 발송 (데드크로스는 항상 데드크로스 메시지만)
+        if ma_result.signal == "dead_cross":
+            notify_ma(ma_result, state)
+        elif ma_result.is_52w_drop_20_alert and not state.get("drop_20_alerted"):
+            notify_drop(ma_result, 20)
+            state["drop_20_alerted"] = True
+            state["drop_10_alerted"] = True
+        elif ma_result.is_52w_drop_10_alert and not state.get("drop_10_alerted"):
+            notify_drop(ma_result, 10)
+            state["drop_10_alerted"] = True
+        else:
+            notify_ma(ma_result, state)
+
+        # 가격 회복 시 플래그 초기화
+        if not ma_result.is_52w_drop_10_alert:
+            state["drop_10_alerted"] = False
+            state["drop_20_alerted"] = False
+        elif not ma_result.is_52w_drop_20_alert:
+            state["drop_20_alerted"] = False
+
+        # 크로스 발생 시 state 업데이트
         if ma_result.signal == "golden_cross":
             state = state_manager.update_golden_cross(
                 state, ma_result.today_date, ma_result.current_price
             )
-            state_manager.save(state)
         elif ma_result.signal == "dead_cross":
             state = state_manager.update_dead_cross(
                 state, ma_result.today_date, ma_result.current_price
             )
-            state_manager.save(state)
+
+        state_manager.save(state)
 
         logger.info("===== 작업 완료 =====")
 
