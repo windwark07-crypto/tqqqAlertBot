@@ -5,6 +5,7 @@ GitHub Actions: Secrets → env 블록 → os.environ
 로컬 개발:      .env 파일 → python-dotenv → os.environ
 """
 import os
+from functools import lru_cache
 
 # 로컬 .env가 있으면 로드, 없으면(GitHub Actions 등) 조용히 무시
 try:
@@ -23,9 +24,14 @@ def _require_env(key: str) -> str:
     return value
 
 
-# 필수 환경변수
-TELEGRAM_BOT_TOKEN: str = _require_env("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID: str   = _require_env("TELEGRAM_CHAT_ID")
+# 필수 환경변수 — 실제 사용 시점에 평가 (임포트 시 즉시 평가하지 않음)
+@lru_cache(maxsize=None)
+def get_telegram_token() -> str:
+    return _require_env("TELEGRAM_BOT_TOKEN")
+
+@lru_cache(maxsize=None)
+def get_telegram_chat_id() -> str:
+    return _require_env("TELEGRAM_CHAT_ID")
 
 # 설정값 (환경변수로 오버라이드 가능)
 SYMBOL: str   = os.getenv("SYMBOL", "QQQ")

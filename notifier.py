@@ -6,13 +6,29 @@ import logging
 from enum import Enum
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+from config import get_telegram_token, get_telegram_chat_id
 from ma_calculator import MAResult, SignalType
 
 logger = logging.getLogger(__name__)
 
 TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
+
+
+def _build_telegram_session() -> requests.Session:
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["POST"],
+    )
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    return session
+
+_TELEGRAM_SESSION = _build_telegram_session()
 QQQ_RISE_THRESHOLD = 0.08  # 골든크로스 매수가 대비 QQQ 8% 상승 시 일부 매도 알림
 
 
@@ -146,16 +162,16 @@ def send_telegram_message(text: str) -> None:
         requests.HTTPError: HTTP 오류 응답
         ValueError: 텔레그램 API가 ok=false 반환
     """
-    url = TELEGRAM_API_URL.format(token=TELEGRAM_BOT_TOKEN)
+    url = TELEGRAM_API_URL.format(token=get_telegram_token())
     payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
+        "chat_id": get_telegram_chat_id(),
         "text": text,
         "parse_mode": "HTML",
         "disable_web_page_preview": True,
     }
 
-    logger.info("텔레그램 메시지 발송 중 (chat_id=%s)", TELEGRAM_CHAT_ID)
-    response = requests.post(url, json=payload, timeout=15)
+    logger.info("텔레그램 메시지 발송 중 (chat_id=%s)", get_telegram_chat_id())
+    response = _TELEGRAM_SESSION.post(url, json=payload, timeout=15)
     response.raise_for_status()
 
     result = response.json()
