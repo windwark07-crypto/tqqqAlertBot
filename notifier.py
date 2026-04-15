@@ -68,9 +68,11 @@ _52W_DROP_TEMPLATE = (
     "\n"
     "• 현재가: <b>{current_price:.2f}</b>\n"
     "• 52주 신고가: <b>{high_52w:.2f}</b>\n"
+    "• {short_period}일 MA: <b>{short_ma:.2f}</b>\n"
+    "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
     "• 기준일: {date}\n"
     "\n"
-    "💡 TQQQ 30% 매수!"
+    "💡 TQQQ 30% 매수!!"
 )
 
 
@@ -90,6 +92,10 @@ def build_52w_drop_message(result: MAResult) -> str:
         drop_pct=result.drop_pct * 100,
         current_price=result.current_price,
         high_52w=result.high_52w,
+        short_period=result.short_period,
+        long_period=result.long_period,
+        short_ma=result.short_ma_value,
+        long_ma=result.long_ma_value,
         date=result.today_date,
     )
 
