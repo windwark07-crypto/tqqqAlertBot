@@ -23,7 +23,8 @@ _TEMPLATES: dict[SignalType, str] = {
         "• {long_period}일 MA: <b>{long_ma:.2f}</b>\n"
         "• 기준일: {date}\n"
         "\n"
-        "💡 TQQQ 전액 매수!!"
+        "💡 TQQQ 전액 매수!!\n"
+        "🗓 매수일로 기록됩니다."
     ),
     "dead_cross": (
         "🔴 <b>[데드크로스 발생]</b> QQQ\n"
@@ -76,15 +77,24 @@ _52W_DROP_TEMPLATE = (
 )
 
 
-def build_message(result: MAResult) -> str:
+def build_message(result: MAResult, state: dict) -> str:
     template = _TEMPLATES[result.signal]
-    return template.format(
+    message = template.format(
         short_period=result.short_period,
         long_period=result.long_period,
         short_ma=result.short_ma_value,
         long_ma=result.long_ma_value,
         date=result.today_date,
     )
+
+    # above/below 신호일 때 마지막 매수일 정보 추가
+    if result.signal in ("above", "below"):
+        buy_date  = state.get("last_golden_cross_date")
+        buy_price = state.get("last_golden_cross_price")
+        if buy_date:
+            message += f"\n\n🗓 마지막 매수일: <b>{buy_date}</b> (매수가: {buy_price:.2f})"
+
+    return message
 
 
 def build_52w_drop_message(result: MAResult) -> str:
@@ -127,9 +137,9 @@ def send_telegram_message(text: str) -> None:
     logger.info("텔레그램 메시지 발송 완료")
 
 
-def notify(ma_result: MAResult) -> None:
+def notify(ma_result: MAResult, state: dict) -> None:
     # MA 신호 메시지 (매일 발송)
-    send_telegram_message(build_message(ma_result))
+    send_telegram_message(build_message(ma_result, state))
 
     # 52주 신고가 대비 10% 하락 시 추가 발송
     if ma_result.is_52w_drop_alert:

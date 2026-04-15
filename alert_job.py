@@ -2,9 +2,11 @@
 QQQ 이동평균선 알림 메인 실행 파이프라인.
 
 실행 순서:
-  1. 종가 데이터 수집 (Alpha Vantage)
+  1. 종가 데이터 수집
   2. MA 계산 및 신호 감지
-  3. 텔레그램 알림 발송
+  3. 상태 로드 (state.json)
+  4. 텔레그램 알림 발송
+  5. 골든크로스/데드크로스 발생 시 상태 저장
 """
 import logging
 import sys
@@ -12,6 +14,7 @@ import sys
 from data_fetcher import fetch_daily_close
 from ma_calculator import calculate_signals
 from notifier import notify
+import state_manager
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,14 +29,29 @@ def run() -> None:
     logger.info("===== QQQ MA 알림 작업 시작 =====")
 
     try:
-        logger.info("[1/3] Alpha Vantage에서 QQQ 종가 데이터 수집")
+        logger.info("[1/4] Yahoo Finance에서 QQQ 종가 데이터 수집")
         close_series = fetch_daily_close()
 
-        logger.info("[2/3] 이동평균 계산 및 신호 감지")
+        logger.info("[2/4] 이동평균 계산 및 신호 감지")
         ma_result = calculate_signals(close_series)
 
-        logger.info("[3/3] 텔레그램 알림 발송 (신호: %s)", ma_result.signal)
-        notify(ma_result)
+        logger.info("[3/4] 상태 파일 로드")
+        state = state_manager.load()
+
+        logger.info("[4/4] 텔레그램 알림 발송 (신호: %s)", ma_result.signal)
+        notify(ma_result, state)
+
+        # 골든크로스/데드크로스 발생 시 state.json 업데이트
+        if ma_result.signal == "golden_cross":
+            state = state_manager.update_golden_cross(
+                state, ma_result.today_date, ma_result.current_price
+            )
+            state_manager.save(state)
+        elif ma_result.signal == "dead_cross":
+            state = state_manager.update_dead_cross(
+                state, ma_result.today_date, ma_result.current_price
+            )
+            state_manager.save(state)
 
         logger.info("===== 작업 완료 =====")
 
