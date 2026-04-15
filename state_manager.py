@@ -56,6 +56,11 @@ def reset_drop_flags(state: dict) -> None:
     state["drop_20_alerted"] = False
 
 
+def reset_drop_20_flag(state: dict) -> None:
+    """20% 하락 알림 플래그만 초기화 (10% 플래그는 유지)."""
+    state["drop_20_alerted"] = False
+
+
 def set_qqq_8pct_alerted(state: dict) -> None:
     state["qqq_8pct_alerted"] = True
 

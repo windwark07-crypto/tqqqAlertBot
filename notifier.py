@@ -3,10 +3,10 @@
 4가지 신호별 메시지 템플릿 포함.
 """
 import logging
+from enum import Enum
 
 import requests
 
-import state_manager
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 from ma_calculator import MAResult, SignalType
 
@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_API_URL = "https://api.telegram.org/bot{token}/sendMessage"
 QQQ_RISE_THRESHOLD = 0.08  # 골든크로스 매수가 대비 QQQ 8% 상승 시 일부 매도 알림
+
+
+class NotificationKind(Enum):
+    DEAD_CROSS = "dead_cross"
+    DROP_20    = "drop_20"
+    DROP_10    = "drop_10"
+    QQQ_RISE   = "qqq_rise"
+    MA_STATUS  = "ma_status"
 
 _TEMPLATES: dict[SignalType, str] = {
     "golden_cross": (
@@ -183,29 +191,31 @@ def notify_partial_sell(ma_result: MAResult, rise_pct: float) -> None:
     send_telegram_message(text)
 
 
-def dispatch_notification(ma_result: MAResult, state: dict) -> None:
+def dispatch_notification(ma_result: MAResult, state: dict) -> NotificationKind:
     """
-    신호 우선순위에 따라 적절한 알림을 발송하고 state 플래그를 갱신.
+    신호 우선순위에 따라 적절한 알림을 발송하고 발송 종류를 반환.
+    상태 변이(state 플래그 갱신)는 호출자가 담당.
 
     우선순위: dead_cross > 20% 하락 > 10% 하락 > QQQ 8% 상승 > MA 현황
 
     Args:
         ma_result:  MA 계산 결과
-        state:      현재 상태 딕셔너리 (플래그가 인플레이스로 갱신됨)
+        state:      현재 상태 딕셔너리 (읽기 전용으로 사용)
+
+    Returns:
+        NotificationKind: 발송한 알림 종류
     """
     if ma_result.signal == "dead_cross":
         notify_ma(ma_result)
-        return
+        return NotificationKind.DEAD_CROSS
 
     if ma_result.is_52w_drop_20_alert and not state.get("drop_20_alerted"):
         notify_drop(ma_result, 20)
-        state_manager.set_drop_20_alerted(state)
-        return
+        return NotificationKind.DROP_20
 
     if ma_result.is_52w_drop_10_alert and not state.get("drop_10_alerted"):
         notify_drop(ma_result, 10)
-        state_manager.set_drop_10_alerted(state)
-        return
+        return NotificationKind.DROP_10
 
     if (
         ma_result.signal == "above"
@@ -216,7 +226,7 @@ def dispatch_notification(ma_result: MAResult, state: dict) -> None:
         rise_pct  = (ma_result.current_price - buy_price) / buy_price
         if rise_pct >= QQQ_RISE_THRESHOLD:
             notify_partial_sell(ma_result, rise_pct)
-            state_manager.set_qqq_8pct_alerted(state)
-            return
+            return NotificationKind.QQQ_RISE
 
     notify_ma(ma_result)
+    return NotificationKind.MA_STATUS

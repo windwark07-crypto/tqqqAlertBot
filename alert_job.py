@@ -13,7 +13,7 @@ import sys
 
 from data_fetcher import fetch_daily_close
 from ma_calculator import calculate_signals
-from notifier import dispatch_notification
+from notifier import dispatch_notification, NotificationKind
 import state_manager
 
 logging.basicConfig(
@@ -40,13 +40,21 @@ def run() -> None:
 
         logger.info("[4/4] 텔레그램 알림 발송 (신호: %s)", ma_result.signal)
 
-        dispatch_notification(ma_result, state)
+        kind = dispatch_notification(ma_result, state)
 
-        # 가격 회복 시 drop 플래그 초기화 (알림 발송 이후에 처리)
+        # 알림 종류에 따른 state 플래그 갱신
+        if kind == NotificationKind.DROP_20:
+            state_manager.set_drop_20_alerted(state)
+        elif kind == NotificationKind.DROP_10:
+            state_manager.set_drop_10_alerted(state)
+        elif kind == NotificationKind.QQQ_RISE:
+            state_manager.set_qqq_8pct_alerted(state)
+
+        # 가격 회복 시 drop 플래그 초기화
         if not ma_result.is_52w_drop_10_alert:
             state_manager.reset_drop_flags(state)
         elif not ma_result.is_52w_drop_20_alert:
-            state["drop_20_alerted"] = False
+            state_manager.reset_drop_20_flag(state)
 
         # 크로스 발생 시 state 업데이트
         if ma_result.signal == "golden_cross":
