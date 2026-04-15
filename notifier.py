@@ -91,7 +91,7 @@ _DROP_TEMPLATES: dict[int, str] = {
 }
 
 
-_TQQQ_25_TEMPLATE = (
+_QQQ_8PCT_TEMPLATE = (
     "💰 <b>[나스닥100 8% 상승]</b>\n"
     "\n"
     "📈 나스닥100 종가가 매수가 대비 <b>{rise_pct:.1f}% 상승</b>했습니다!\n"
@@ -168,7 +168,7 @@ def notify_drop(ma_result: MAResult, level: int) -> None:
 
 def notify_partial_sell(ma_result: MAResult, rise_pct: float) -> None:
     """QQQ 8% 상승 시 일부 매도 알림 발송."""
-    text = _TQQQ_25_TEMPLATE.format(
+    text = _QQQ_8PCT_TEMPLATE.format(
         rise_pct=rise_pct * 100,
         date=ma_result.today_date,
         qqq_price=ma_result.current_price,
@@ -207,14 +207,14 @@ def dispatch_notification(ma_result: MAResult, state: dict) -> None:
 
     if (
         ma_result.signal == "above"
-        and not state.get("tqqq_25_alerted")
+        and not state.get("qqq_8pct_alerted")
         and state.get("last_golden_cross_price")
     ):
         buy_price = state["last_golden_cross_price"]
         rise_pct  = (ma_result.current_price - buy_price) / buy_price
         if rise_pct >= QQQ_RISE_THRESHOLD:
             notify_partial_sell(ma_result, rise_pct)
-            state_manager.set_tqqq_25_alerted(state)
+            state_manager.set_qqq_8pct_alerted(state)
             return
 
     notify_ma(ma_result)

@@ -11,7 +11,7 @@ QQQ 이동평균선 알림 메인 실행 파이프라인.
 import logging
 import sys
 
-from data_fetcher import fetch_daily_close, fetch_latest_close
+from data_fetcher import fetch_daily_close
 from ma_calculator import calculate_signals
 from notifier import dispatch_notification
 import state_manager
@@ -50,9 +50,8 @@ def run() -> None:
 
         # 크로스 발생 시 state 업데이트
         if ma_result.signal == "golden_cross":
-            tqqq_price = fetch_latest_close("TQQQ")
             state = state_manager.update_golden_cross(
-                state, ma_result.today_date, ma_result.current_price, tqqq_price
+                state, ma_result.today_date, ma_result.current_price
             )
         elif ma_result.signal == "dead_cross":
             state = state_manager.update_dead_cross(

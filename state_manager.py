@@ -16,14 +16,13 @@ STATE_FILE = Path(__file__).parent / "state.json"
 def _default_state() -> dict:
     """항상 새로운 기본 상태 딕셔너리를 반환하는 팩토리 함수."""
     return {
-        "last_golden_cross_date": None,        # 마지막 골든크로스 날짜 (YYYY-MM-DD)
-        "last_golden_cross_price": None,       # 골든크로스 당일 QQQ 현재가
-        "last_golden_cross_tqqq_price": None,  # 골든크로스 당일 TQQQ 종가
-        "last_dead_cross_date": None,          # 마지막 데드크로스 날짜
-        "last_dead_cross_price": None,         # 데드크로스 당일 현재가
-        "drop_10_alerted": False,              # 10% 하락 알림 발송 여부 (가격 회복 시 초기화)
-        "drop_20_alerted": False,              # 20% 하락 알림 발송 여부 (가격 회복 시 초기화)
-        "tqqq_25_alerted": False,              # TQQQ 매수가 대비 25% 상승 알림 발송 여부
+        "last_golden_cross_date": None,   # 마지막 골든크로스 날짜 (YYYY-MM-DD)
+        "last_golden_cross_price": None,  # 골든크로스 당일 QQQ 현재가
+        "last_dead_cross_date": None,     # 마지막 데드크로스 날짜
+        "last_dead_cross_price": None,    # 데드크로스 당일 현재가
+        "drop_10_alerted": False,         # 10% 하락 알림 발송 여부 (가격 회복 시 초기화)
+        "drop_20_alerted": False,         # 20% 하락 알림 발송 여부 (가격 회복 시 초기화)
+        "qqq_8pct_alerted": False,        # QQQ 매수가 대비 8% 상승 알림 발송 여부
     }
 
 
@@ -57,27 +56,25 @@ def reset_drop_flags(state: dict) -> None:
     state["drop_20_alerted"] = False
 
 
-def set_tqqq_25_alerted(state: dict) -> None:
-    state["tqqq_25_alerted"] = True
+def set_qqq_8pct_alerted(state: dict) -> None:
+    state["qqq_8pct_alerted"] = True
 
 
-def update_golden_cross(state: dict, date: str, price: float, tqqq_price: float) -> dict:
-    state["last_golden_cross_date"]        = date
-    state["last_golden_cross_price"]       = round(price, 2)
-    state["last_golden_cross_tqqq_price"]  = round(tqqq_price, 2)
-    state["last_dead_cross_date"]          = None
-    state["last_dead_cross_price"]         = None
-    state["drop_10_alerted"]               = False
-    state["drop_20_alerted"]               = False
-    state["tqqq_25_alerted"]               = False
+def update_golden_cross(state: dict, date: str, price: float) -> dict:
+    state["last_golden_cross_date"]  = date
+    state["last_golden_cross_price"] = round(price, 2)
+    state["last_dead_cross_date"]    = None
+    state["last_dead_cross_price"]   = None
+    state["drop_10_alerted"]         = False
+    state["drop_20_alerted"]         = False
+    state["qqq_8pct_alerted"]        = False
     return state
 
 
 def update_dead_cross(state: dict, date: str, price: float) -> dict:
-    state["last_dead_cross_date"]         = date
-    state["last_dead_cross_price"]        = round(price, 2)
-    state["last_golden_cross_date"]       = None
-    state["last_golden_cross_price"]      = None
-    state["last_golden_cross_tqqq_price"] = None
-    state["tqqq_25_alerted"]              = False
+    state["last_dead_cross_date"]    = date
+    state["last_dead_cross_price"]   = round(price, 2)
+    state["last_golden_cross_date"]  = None
+    state["last_golden_cross_price"] = None
+    state["qqq_8pct_alerted"]        = False
     return state

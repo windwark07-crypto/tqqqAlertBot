@@ -16,17 +16,16 @@ from notifier import dispatch_notification
 STATE_DEFAULT = {
     "last_golden_cross_date": "2026-01-15",
     "last_golden_cross_price": 510.00,
-    "last_golden_cross_tqqq_price": 60.00,
     "last_dead_cross_date": None,
     "last_dead_cross_price": None,
     "drop_10_alerted": False,
     "drop_20_alerted": False,
-    "tqqq_25_alerted": False,
+    "qqq_8pct_alerted": False,
 }
 
 STATE_DROP10_SENT   = {**STATE_DEFAULT, "drop_10_alerted": True,  "drop_20_alerted": False}
 STATE_DROP20_SENT   = {**STATE_DEFAULT, "drop_10_alerted": True,  "drop_20_alerted": True}
-STATE_TQQQ25_SENT   = {**STATE_DEFAULT, "tqqq_25_alerted": True}
+STATE_QQQ8PCT_SENT  = {**STATE_DEFAULT, "qqq_8pct_alerted": True}
 
 # ── 시나리오 정의 ──────────────────────────────────────────────
 SCENARIOS = [
@@ -69,20 +68,20 @@ SCENARIOS = [
         ),
     },
     {
-        "no": 3,
-        "name": "단기MA 위 (상승 추세 유지)",
+        "no": "3",
+        "name": "단기MA 위 (상승 추세 유지, 매수가 대비 8% 미만)",
         "expected": "above 메시지",
-        "state": STATE_DEFAULT,
+        "state": STATE_DEFAULT,           # last_golden_cross_price=510.00
         "result": MAResult(
             signal="above",
-            short_ma_value=619.02,
-            long_ma_value=605.31,
+            short_ma_value=519.02,
+            long_ma_value=505.31,
             today_date="2026-04-14",
             short_period=3,
             long_period=163,
-            current_price=628.60,
-            high_52w=635.77,
-            drop_pct=0.011,
+            current_price=520.00,         # (520-510)/510 = 2.0% < 8%
+            high_52w=525.00,
+            drop_pct=0.010,
             is_52w_drop_10_alert=False,
             is_52w_drop_20_alert=False,
         ),
@@ -222,7 +221,7 @@ SCENARIOS = [
             is_52w_drop_20_alert=True,
         ),
     },
-    # ── TQQQ 25% 상승 ─────────────────────────────────────────
+    # ── QQQ 8% 상승 ───────────────────────────────────────────
     {
         "no": 8,
         "name": "QQQ 8% 이상 상승 첫 발생",
@@ -246,7 +245,7 @@ SCENARIOS = [
         "no": 9,
         "name": "QQQ 8% 이상 상승이지만 이미 발송됨",
         "expected": "above 메시지 (QQQ 8% 알림 없음)",
-        "state": STATE_TQQQ25_SENT,       # tqqq_25_alerted=True
+        "state": STATE_QQQ8PCT_SENT,       # qqq_8pct_alerted=True
         "result": MAResult(
             signal="above",
             short_ma_value=632.00,
