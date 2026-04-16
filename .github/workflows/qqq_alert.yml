@@ -9,7 +9,7 @@ on:
 jobs:
   run-alert:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 40
     permissions:
       contents: write  # state.json 커밋을 위해 필요
 

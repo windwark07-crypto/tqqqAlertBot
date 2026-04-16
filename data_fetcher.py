@@ -5,6 +5,9 @@ Yahoo Finance API 직접 호출로 QQQ 종가 데이터 가져오기.
 range=2y로 2년치 일봉 데이터 수신 → 163일 MA 계산에 충분.
 """
 import logging
+import time
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
@@ -42,6 +45,24 @@ def _build_session() -> requests.Session:
 
 
 _SESSION = _build_session()
+_ET = ZoneInfo("America/New_York")
+
+
+def _expected_latest_trading_date() -> date:
+    """
+    현재 시각 기준으로 Yahoo Finance가 반환해야 할 최신 거래일을 계산.
+
+    미국 주식 시장은 ET 16:30 이후 당일 종가가 확정되므로
+    ET 16:30 이전이면 전 거래일, 이후면 당일을 기대값으로 반환.
+    (미국 공휴일은 미고려)
+    """
+    now_et = datetime.now(_ET)
+    market_close_et = now_et.replace(hour=16, minute=30, second=0, microsecond=0)
+    expected = now_et.date() if now_et >= market_close_et else now_et.date() - timedelta(days=1)
+    # 주말이면 직전 금요일로
+    while expected.weekday() >= 5:  # 5=토, 6=일
+        expected -= timedelta(days=1)
+    return expected
 
 
 def _fetch_chart_result(symbol: str, params: dict) -> dict:
@@ -85,17 +106,8 @@ def fetch_latest_close(symbol: str) -> float:
     return float(closes[-1])
 
 
-def fetch_daily_close() -> pd.Series:
-    """
-    QQQ 일별 종가(Close)를 날짜 오름차순 pd.Series로 반환.
-
-    Returns:
-        pd.Series: 인덱스=날짜(Timestamp, UTC→날짜), 값=종가(float), 날짜 오름차순
-
-    Raises:
-        ValueError: 응답 오류 또는 데이터 부족
-        requests.HTTPError: HTTP 오류
-    """
+def _fetch_close_series() -> pd.Series:
+    """Yahoo Finance에서 종가 Series를 한 번 가져와 반환."""
     result = _fetch_chart_result(SYMBOL, {"interval": "1d", "range": "2y"})
 
     timestamps = result.get("timestamp", [])
@@ -104,7 +116,6 @@ def fetch_daily_close() -> pd.Series:
     if not timestamps or not closes:
         raise ValueError("타임스탬프 또는 종가 데이터가 없습니다.")
 
-    # timestamp(Unix) → 날짜, None 제거
     close_series = pd.Series(
         {
             pd.Timestamp(ts, unit="s").normalize(): close
@@ -116,11 +127,52 @@ def fetch_daily_close() -> pd.Series:
     if close_series.empty:
         raise ValueError("종가 데이터가 모두 None입니다. API 응답을 확인하세요.")
 
-    logger.info("수신된 데이터: %d개 거래일 (최근: %s)", len(close_series), close_series.index[-1].date())
-
     if len(close_series) < MIN_REQUIRED_ROWS:
         raise ValueError(
             f"데이터 부족: {len(close_series)}개 (최소 {MIN_REQUIRED_ROWS}개 필요)"
         )
+
+    return close_series
+
+
+def fetch_daily_close(max_retries: int = 3, retry_wait_sec: int = 600) -> pd.Series:
+    """
+    QQQ 일별 종가(Close)를 날짜 오름차순 pd.Series로 반환.
+
+    Yahoo Finance가 당일 종가를 아직 확정하지 않은 경우 retry_wait_sec 간격으로
+    최대 max_retries회 재시도한다.
+
+    Returns:
+        pd.Series: 인덱스=날짜(Timestamp), 값=종가(float), 날짜 오름차순
+
+    Raises:
+        ValueError: 응답 오류 또는 데이터 부족
+        requests.HTTPError: HTTP 오류
+    """
+    expected = _expected_latest_trading_date()
+
+    for attempt in range(1, max_retries + 1):
+        close_series = _fetch_close_series()
+        latest = close_series.index[-1].date()
+
+        logger.info(
+            "수신된 데이터: %d개 거래일 (최신: %s, 예상: %s)",
+            len(close_series), latest, expected,
+        )
+
+        if latest >= expected:
+            return close_series
+
+        if attempt < max_retries:
+            logger.warning(
+                "최신 데이터(%s)가 예상 거래일(%s)보다 오래됨 — %d초 후 재시도 (%d/%d)",
+                latest, expected, retry_wait_sec, attempt, max_retries - 1,
+            )
+            time.sleep(retry_wait_sec)
+        else:
+            logger.warning(
+                "재시도 %d회 후에도 최신 데이터 없음 (최신: %s, 예상: %s) — 현재 데이터로 진행",
+                max_retries, latest, expected,
+            )
 
     return close_series
