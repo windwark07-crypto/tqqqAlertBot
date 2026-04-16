@@ -12,7 +12,7 @@ GitHub Actions로 매일 KST 07:00(UTC 22:00)에 자동 실행된다.
 | 파일 | 역할 |
 |---|---|
 | `alert_job.py` | 메인 실행 파이프라인 (데이터 수집 → MA 계산 → 알림 발송 → 상태 저장) |
-| `data_fetcher.py` | Yahoo Finance 비공식 API로 QQQ 종가 수집 (2년치 일봉) |
+| `data_fetcher.py` | Polygon.io API로 QQQ 종가 수집 (2년치 일봉) |
 | `ma_calculator.py` | 이동평균 계산, 크로스오버 신호 감지, 52주 고가 대비 하락률 계산 |
 | `notifier.py` | 텔레그램 알림 메시지 템플릿 및 발송 로직 |
 | `state_manager.py` | state.json 로드/저장, 상태 플래그 관리 |

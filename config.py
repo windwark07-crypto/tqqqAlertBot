@@ -33,6 +33,10 @@ def get_telegram_token() -> str:
 def get_telegram_chat_id() -> str:
     return _require_env("TELEGRAM_CHAT_ID")
 
+@lru_cache(maxsize=None)
+def get_polygon_api_key() -> str:
+    return _require_env("POLYGON_API_KEY")
+
 # 설정값 (환경변수로 오버라이드 가능)
 def _get_int_env(key: str, default: int) -> int:
     raw = os.getenv(key, str(default))

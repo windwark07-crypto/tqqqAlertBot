@@ -1,7 +1,7 @@
 """
-Yahoo Finance API 직접 호출로 QQQ 종가 데이터 가져오기.
+Polygon.io API로 QQQ 종가 데이터 가져오기.
 
-비공식 API이나 API 키 불필요.
+공식 API + 무료 플랜으로 시장 마감 후 15~30분 내 데이터 제공.
 range=2y로 2년치 일봉 데이터 수신 → 163일 MA 계산에 충분.
 """
 import logging
@@ -14,20 +14,13 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from config import LONG_MA, SYMBOL
+from config import LONG_MA, SYMBOL, get_polygon_api_key
 
 logger = logging.getLogger(__name__)
 
-BASE_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+BASE_URL = "https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{from_date}/{to_date}"
+PREV_URL = "https://api.polygon.io/v2/aggs/ticker/{symbol}/prev"
 MIN_REQUIRED_ROWS = LONG_MA + 2  # 크로스오버 감지를 위해 최소 165행 필요
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    )
-}
 
 
 def _build_session() -> requests.Session:
@@ -50,7 +43,7 @@ _ET = ZoneInfo("America/New_York")
 
 def _expected_latest_trading_date() -> date:
     """
-    현재 시각 기준으로 Yahoo Finance가 반환해야 할 최신 거래일을 계산.
+    현재 시각 기준으로 Polygon.io가 반환해야 할 최신 거래일을 계산.
 
     미국 주식 시장은 ET 16:30 이후 당일 종가가 확정되므로
     ET 16:30 이전이면 전 거래일, 이후면 당일을 기대값으로 반환.
@@ -65,67 +58,67 @@ def _expected_latest_trading_date() -> date:
     return expected
 
 
-def _fetch_chart_result(symbol: str, params: dict) -> dict:
-    """Yahoo Finance Chart API를 호출하고 result[0]를 반환."""
-    url = BASE_URL.format(symbol=symbol)
-    logger.info("Yahoo Finance API 호출 중: symbol=%s", symbol)
-    response = _SESSION.get(url, headers=HEADERS, params=params, timeout=30)
+def _fetch_prev_close() -> tuple[pd.Timestamp, float]:
+    """Polygon.io prev 엔드포인트로 가장 최근 거래일 종가를 가져온다."""
+    url = PREV_URL.format(symbol=SYMBOL)
+    logger.info("Polygon.io prev API 호출 중: symbol=%s", SYMBOL)
+    response = _SESSION.get(
+        url,
+        params={"apiKey": get_polygon_api_key()},
+        timeout=30,
+    )
     response.raise_for_status()
 
     data = response.json()
-    chart = data.get("chart", {})
+    if data.get("status") == "ERROR":
+        raise ValueError(f"Polygon.io prev API 오류: {data.get('error')}")
 
-    if chart.get("error"):
-        raise ValueError(f"Yahoo Finance API 오류: {chart['error']}")
+    results = data.get("results")
+    if not results:
+        raise ValueError(f"{SYMBOL}: prev API 응답에 데이터가 없습니다.")
 
-    result = chart.get("result")
-    if not result:
-        raise ValueError(f"{symbol}: Yahoo Finance API 응답에 데이터가 없습니다.")
-
-    return result[0]
-
-
-def fetch_latest_close(symbol: str) -> float:
-    """
-    특정 심볼의 최근 종가 1개를 반환.
-
-    Returns:
-        float: 최근 종가
-
-    Raises:
-        ValueError: 응답 오류 또는 데이터 없음
-        requests.HTTPError: HTTP 오류
-    """
-    result = _fetch_chart_result(symbol, {"interval": "1d", "range": "5d"})
-    closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
-    closes = [c for c in closes if c is not None]
-
-    if not closes:
-        raise ValueError(f"{symbol} 종가 데이터가 없습니다.")
-
-    return float(closes[-1])
+    r = results[0]
+    return pd.Timestamp(r["t"], unit="ms").normalize(), float(r["c"])
 
 
 def _fetch_close_series() -> pd.Series:
-    """Yahoo Finance에서 종가 Series를 한 번 가져와 반환."""
-    result = _fetch_chart_result(SYMBOL, {"interval": "1d", "range": "2y"})
+    """Polygon.io range + prev 엔드포인트를 조합해 종가 Series를 반환."""
+    now_et    = datetime.now(_ET)
+    from_date = (now_et - timedelta(days=730)).strftime("%Y-%m-%d")
+    to_date   = (now_et + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    timestamps = result.get("timestamp", [])
-    closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
+    url = BASE_URL.format(symbol=SYMBOL, from_date=from_date, to_date=to_date)
+    logger.info("Polygon.io range API 호출 중: symbol=%s", SYMBOL)
 
-    if not timestamps or not closes:
-        raise ValueError("타임스탬프 또는 종가 데이터가 없습니다.")
+    response = _SESSION.get(
+        url,
+        params={"apiKey": get_polygon_api_key(), "sort": "asc", "limit": 50000},
+        timeout=30,
+    )
+    response.raise_for_status()
 
+    data = response.json()
+    if data.get("status") == "ERROR":
+        raise ValueError(f"Polygon.io API 오류: {data.get('error')}")
+
+    results = data.get("results")
+    if not results:
+        raise ValueError(f"{SYMBOL}: Polygon.io API 응답에 데이터가 없습니다.")
+
+    # Unix ms → 날짜, 종가 추출
     close_series = pd.Series(
-        {
-            pd.Timestamp(ts, unit="s").normalize(): close
-            for ts, close in zip(timestamps, closes)
-            if close is not None
-        }
+        {pd.Timestamp(r["t"], unit="ms").normalize(): r["c"] for r in results}
     ).sort_index()
 
     if close_series.empty:
-        raise ValueError("종가 데이터가 모두 None입니다. API 응답을 확인하세요.")
+        raise ValueError("종가 데이터가 없습니다. API 응답을 확인하세요.")
+
+    # prev 엔드포인트로 최신 종가 보완 (range API 처리 지연 대응)
+    prev_date, prev_close = _fetch_prev_close()
+    if prev_date > close_series.index[-1]:
+        logger.info("prev API로 최신 종가 보완: %s $%.2f", prev_date.date(), prev_close)
+        close_series[prev_date] = prev_close
+        close_series = close_series.sort_index()
 
     if len(close_series) < MIN_REQUIRED_ROWS:
         raise ValueError(
@@ -135,11 +128,11 @@ def _fetch_close_series() -> pd.Series:
     return close_series
 
 
-def fetch_daily_close(max_retries: int = 4, retry_wait_sec: int = 600) -> pd.Series:
+def fetch_daily_close(max_retries: int = 4, retry_wait_sec: int = 180) -> pd.Series:
     """
     QQQ 일별 종가(Close)를 날짜 오름차순 pd.Series로 반환.
 
-    Yahoo Finance가 당일 종가를 아직 확정하지 않은 경우 retry_wait_sec 간격으로
+    당일 종가가 아직 확정되지 않은 경우 retry_wait_sec 간격으로
     최대 max_retries회 재시도한다.
 
     Returns:

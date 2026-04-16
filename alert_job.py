@@ -29,7 +29,7 @@ def run() -> None:
     logger.info("===== QQQ MA 알림 작업 시작 =====")
 
     try:
-        logger.info("[1/4] Yahoo Finance에서 QQQ 종가 데이터 수집")
+        logger.info("[1/4] Polygon.io에서 QQQ 종가 데이터 수집")
         close_series = fetch_daily_close()
 
         logger.info("[2/4] 이동평균 계산 및 신호 감지")
