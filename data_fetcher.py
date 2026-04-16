@@ -135,7 +135,7 @@ def _fetch_close_series() -> pd.Series:
     return close_series
 
 
-def fetch_daily_close(max_retries: int = 3, retry_wait_sec: int = 600) -> pd.Series:
+def fetch_daily_close(max_retries: int = 4, retry_wait_sec: int = 600) -> pd.Series:
     """
     QQQ 일별 종가(Close)를 날짜 오름차순 pd.Series로 반환.
 
