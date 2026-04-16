@@ -2,8 +2,8 @@ name: QQQ MA Alert
 
 on:
   schedule:
-    # UTC 일~금 21:00 = KST 월~토 06:00 (UTC+9)
-    - cron: '0 21 * * 0-5'
+    # UTC 일~금 21:11 = KST 월~토 06:11 (UTC+9)
+    - cron: '11 21 * * 0-5'
   workflow_dispatch:  # 수동 실행 (테스트용)
 
 jobs:
