@@ -77,9 +77,11 @@ def calculate_signals(close_series: pd.Series) -> MAResult:
     current_price = float(close_series.iloc[-1])
 
     # 52주 고가: 최근 252 거래일 종가 최고값
-    lookback      = min(TRADING_DAYS_1Y, len(close_series))
-    high_52w      = float(close_series.iloc[-lookback:].max())
-    drop_pct      = (high_52w - current_price) / high_52w
+    lookback = min(TRADING_DAYS_1Y, len(close_series))
+    high_52w = float(close_series.iloc[-lookback:].max())
+    if high_52w <= 0:
+        raise ValueError(f"52주 고가가 0 이하입니다: {high_52w}")
+    drop_pct = max(0.0, (high_52w - current_price) / high_52w)
 
     logger.info(
         "[%s] %d일MA=%.4f | %d일MA=%.4f | 현재가=%.2f | 52주고가=%.2f | 고가대비하락=%.2f%%",

@@ -34,6 +34,15 @@ def get_telegram_chat_id() -> str:
     return _require_env("TELEGRAM_CHAT_ID")
 
 # 설정값 (환경변수로 오버라이드 가능)
+def _get_int_env(key: str, default: int) -> int:
+    raw = os.getenv(key, str(default))
+    try:
+        return int(raw)
+    except ValueError:
+        raise ValueError(
+            f"환경변수 '{key}'는 정수여야 합니다. 현재 값: '{raw}'"
+        )
+
 SYMBOL: str   = os.getenv("SYMBOL", "QQQ")
-SHORT_MA: int = int(os.getenv("SHORT_MA", "3"))    # 단기 이동평균 기간 (일)
-LONG_MA: int  = int(os.getenv("LONG_MA", "163"))   # 장기 이동평균 기간 (일)
+SHORT_MA: int = _get_int_env("SHORT_MA", 3)    # 단기 이동평균 기간 (일)
+LONG_MA: int  = _get_int_env("LONG_MA", 163)   # 장기 이동평균 기간 (일)

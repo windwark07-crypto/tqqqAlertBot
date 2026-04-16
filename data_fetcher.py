@@ -113,6 +113,9 @@ def fetch_daily_close() -> pd.Series:
         }
     ).sort_index()
 
+    if close_series.empty:
+        raise ValueError("종가 데이터가 모두 None입니다. API 응답을 확인하세요.")
+
     logger.info("수신된 데이터: %d개 거래일 (최근: %s)", len(close_series), close_series.index[-1].date())
 
     if len(close_series) < MIN_REQUIRED_ROWS:

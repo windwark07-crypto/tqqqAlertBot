@@ -11,6 +11,7 @@ from urllib3.util.retry import Retry
 
 from config import get_telegram_token, get_telegram_chat_id
 from ma_calculator import MAResult, SignalType
+from state_manager import AlertState
 
 logger = logging.getLogger(__name__)
 
@@ -162,15 +163,17 @@ def send_telegram_message(text: str) -> None:
         requests.HTTPError: HTTP 오류 응답
         ValueError: 텔레그램 API가 ok=false 반환
     """
-    url = TELEGRAM_API_URL.format(token=get_telegram_token())
+    token = get_telegram_token()
+    chat_id = get_telegram_chat_id()
+    url = TELEGRAM_API_URL.format(token=token)
     payload = {
-        "chat_id": get_telegram_chat_id(),
+        "chat_id": chat_id,
         "text": text,
         "parse_mode": "HTML",
         "disable_web_page_preview": True,
     }
 
-    logger.info("텔레그램 메시지 발송 중 (chat_id=%s)", get_telegram_chat_id())
+    logger.info("텔레그램 메시지 발송 중 (chat_id=%s)", chat_id)
     response = _TELEGRAM_SESSION.post(url, json=payload, timeout=15)
     response.raise_for_status()
 
@@ -207,7 +210,7 @@ def notify_partial_sell(ma_result: MAResult, rise_pct: float) -> None:
     send_telegram_message(text)
 
 
-def dispatch_notification(ma_result: MAResult, state: dict) -> NotificationKind:
+def dispatch_notification(ma_result: MAResult, state: AlertState) -> NotificationKind:
     """
     신호 우선순위에 따라 적절한 알림을 발송하고 발송 종류를 반환.
     상태 변이(state 플래그 갱신)는 호출자가 담당.
