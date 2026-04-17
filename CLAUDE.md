@@ -3,7 +3,7 @@
 ## 프로젝트 개요
 
 나스닥100 ETF(QQQ)의 이동평균선 크로스오버 및 52주 신고가 대비 하락을 감지해 텔레그램으로 알림을 발송하는 봇.
-GitHub Actions로 매일 KST 07:00(UTC 22:00)에 자동 실행된다.
+GitHub Actions로 월~토 KST 07:30(UTC 22:30)에 자동 실행된다.
 
 대상 종목: **KODEX 미국나스닥100 레버리지(합성 H) (409820)**
 
@@ -16,7 +16,7 @@ GitHub Actions로 매일 KST 07:00(UTC 22:00)에 자동 실행된다.
 | `ma_calculator.py` | 이동평균 계산, 크로스오버 신호 감지, 52주 고가 대비 하락률 계산 |
 | `notifier.py` | 텔레그램 알림 메시지 템플릿 및 발송 로직 |
 | `state_manager.py` | state.json 로드/저장, 상태 플래그 관리 |
-| `config.py` | 환경변수 로더 (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, SYMBOL, SHORT_MA, LONG_MA) |
+| `config.py` | 환경변수 로더 (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, POLYGON_API_KEY, SYMBOL, SHORT_MA, LONG_MA) |
 | `state.json` | 크로스 발생 이력 및 알림 발송 플래그 영속 저장 (GitHub에 커밋됨) |
 | `test_scenarios.py` | 실제 API 호출 없이 더미 MAResult로 텔레그램 메시지 발송 테스트 |
 | `.github/workflows/qqq_alert.yml` | GitHub Actions 스케줄 실행 정의 |
