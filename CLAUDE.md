@@ -29,7 +29,7 @@ GitHub Actions로 월~토 KST 07:30(UTC 22:30)에 자동 실행된다.
 | `LONG_MA` | 163일 | 장기 이동평균 기간 |
 | `DROP_THRESHOLD_10` | 10% | 52주 고가 대비 1차 하락 기준 |
 | `DROP_THRESHOLD_20` | 20% | 52주 고가 대비 2차 하락 기준 |
-| `QQQ_RISE_THRESHOLD` | 8% | 골든크로스 매수가 대비 일부 매도 기준 |
+| `QQQ_RISE_THRESHOLD` | 8% | 골든크로스 매수가 대비 일부 매도 기준 (`notifier.py`에 하드코딩, 환경변수 오버라이드 불가) |
 
 ## 신호 타입 (SignalType)
 
@@ -42,7 +42,7 @@ GitHub Actions로 월~토 KST 07:30(UTC 22:30)에 자동 실행된다.
 
 ## 알림 우선순위 (dispatch_notification)
 
-`dead_cross` > `drop 20%` > `drop 10%` > `QQQ 8% 상승` > MA 현황 (`above` / `below`)
+`dead_cross` > `drop 20%` > `drop 10%` > `QQQ 8% 상승` > MA 현황 (`golden_cross` / `above` / `below`)
 
 ## state.json 구조
 
