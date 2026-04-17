@@ -58,6 +58,14 @@ GitHub Actions로 월~토 KST 07:30(UTC 22:30)에 자동 실행된다.
 }
 ```
 
+## 제약 및 주의사항
+
+- **Polygon.io 무료 플랜**: 시장 마감(ET 16:30) 후 15~30분 내 데이터 확정. 미국 공휴일은 코드에서 미고려 — 공휴일 직후 데이터 지연 가능
+- **데이터 신선도 재시도**: `fetch_daily_close()`는 최신 거래일 데이터가 없으면 3분 간격으로 최대 3회 재시도 후 구 데이터로 진행 (`data_fetcher.py` `max_retries=4`, `retry_wait_sec=180`)
+- **state.json 수동 수정 시**: GitHub Actions 실행마다 환경이 초기화되므로 state.json이 상태 유지 수단임. 수동 수정 시 JSON 키 이름과 값 타입(`null` / `bool` / `float`) 엄수
+- **drop 플래그 초기화 규칙**: `dead_cross` 발생 시 `drop_10_alerted` / `drop_20_alerted`는 초기화되지 않음. 오직 가격 회복(`is_52w_drop_10_alert=False`) 시에만 초기화 (`alert_job.py` 참고)
+- **QQQ_RISE_THRESHOLD 변경**: `notifier.py` 상수를 직접 수정해야 함 (환경변수 오버라이드 불가)
+
 ## 실행 방법
 
 ```bash
@@ -73,6 +81,6 @@ python alert_job.py             # 실제 실행
 테스트 시나리오 정의는 TEST_SCENARIOS.md를 참고할 것.
 
 ## 커밋 규칙
-
+- 커밋 전 항상 확인 요청할 것
 - 커밋은 논리적 작업 단위로 분리해서 생성할 것 (예: 기능 변경, 문서 추가, 버그 수정을 각각 별도 커밋)
 - 커밋 메시지는 해당 작업을 한 줄로 간결하게 설명할 것 (예: `QQQ 8% 상승 조건으로 변경`, `프로젝트 문서 추가`)
