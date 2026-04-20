@@ -1,8 +1,8 @@
 """
-Polygon.io API로 QQQ 종가 데이터 가져오기.
+QQQ 종가 데이터 가져오기.
 
-공식 API + 무료 플랜으로 시장 마감 후 15~30분 내 데이터 제공.
-range=2y로 2년치 일봉 데이터 수신 → 163일 MA 계산에 충분.
+- 과거 2년치 일봉: Polygon.io range API
+- 당일 OHLCV (최신 거래일 보완): Yahoo Finance
 """
 import logging
 import time
@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
+import yfinance as yf
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -19,7 +20,6 @@ from config import LONG_MA, SYMBOL, get_polygon_api_key
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{from_date}/{to_date}"
-PREV_URL = "https://api.polygon.io/v2/aggs/ticker/{symbol}/prev"
 MIN_REQUIRED_ROWS = LONG_MA + 2  # 크로스오버 감지를 위해 최소 165행 필요
 
 
@@ -59,26 +59,15 @@ def _expected_latest_trading_date() -> date:
 
 
 def _fetch_prev_close() -> tuple[pd.Timestamp, float]:
-    """Polygon.io prev 엔드포인트로 가장 최근 거래일 종가를 가져온다."""
-    url = PREV_URL.format(symbol=SYMBOL)
-    logger.info("Polygon.io prev API 호출 중: symbol=%s", SYMBOL)
-    response = _SESSION.get(
-        url,
-        params={"apiKey": get_polygon_api_key()},
-        timeout=30,
-    )
-    response.raise_for_status()
-
-    data = response.json()
-    if data.get("status") == "ERROR":
-        raise ValueError(f"Polygon.io prev API 오류: {data.get('error')}")
-
-    results = data.get("results")
-    if not results:
-        raise ValueError(f"{SYMBOL}: prev API 응답에 데이터가 없습니다.")
-
-    r = results[0]
-    return pd.Timestamp(r["t"], unit="ms").normalize(), float(r["c"])
+    """Yahoo Finance에서 가장 최근 거래일 OHLCV를 가져와 종가를 반환한다."""
+    logger.info("Yahoo Finance에서 최신 종가 조회 중: symbol=%s", SYMBOL)
+    hist = yf.Ticker(SYMBOL).history(period="5d")
+    if hist.empty:
+        raise ValueError(f"{SYMBOL}: Yahoo Finance 응답에 데이터가 없습니다.")
+    latest_ts = pd.Timestamp(hist.index[-1]).normalize().tz_localize(None)
+    close = float(hist["Close"].iloc[-1])
+    logger.info("Yahoo Finance 최신 종가: %s $%.2f", latest_ts.date(), close)
+    return latest_ts, close
 
 
 def _fetch_close_series() -> pd.Series:
