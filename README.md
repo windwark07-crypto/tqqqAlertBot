@@ -62,7 +62,7 @@ python test_scenarios.py 1      # 특정 시나리오만 실행
 | 파일 | 역할 |
 |---|---|
 | `alert_job.py` | 메인 실행 파이프라인 (데이터 수집 → MA 계산 → 알림 발송 → 상태 저장) |
-| `data_fetcher.py` | Polygon.io API로 QQQ 종가 수집 (2년치 일봉) |
+| `data_fetcher.py` | QQQ 종가 수집 — 과거 2년치 일봉은 Polygon.io range API, 당일 최신 종가는 Yahoo Finance |
 | `ma_calculator.py` | 이동평균 계산, 크로스오버 신호 감지, 52주 고가 대비 하락률 계산 |
 | `notifier.py` | 텔레그램 알림 메시지 템플릿 및 발송 로직 |
 | `state_manager.py` | state.json 로드/저장, 상태 플래그 관리 |
@@ -110,7 +110,8 @@ python test_scenarios.py 1      # 특정 시나리오만 실행
 
 ## 제약 및 주의사항
 
-- **Polygon.io 무료 플랜**: 시장 마감(ET 16:30) 후 15~30분 내 데이터 확정. 미국 공휴일은 코드에서 미고려 — 공휴일 직후 데이터 지연 가능
+- **Polygon.io 무료 플랜**: 과거 2년치 일봉 데이터 제공. 당일 종가는 처리 지연이 있으므로 Yahoo Finance로 보완
+- **Yahoo Finance (당일 종가)**: 장 마감(ET 16:00) 직후 데이터 제공. 미국 공휴일은 코드에서 미고려 — 공휴일 당일 데이터 없음
 - **데이터 신선도 재시도**: `fetch_daily_close()`는 최신 거래일 데이터가 없으면 3분 간격으로 최대 3회 재시도 후 구 데이터로 진행 (`data_fetcher.py` `max_retries=4`, `retry_wait_sec=180`)
 - **state.json 수동 수정 시**: GitHub Actions 실행마다 환경이 초기화되므로 state.json이 상태 유지 수단임. 수동 수정 시 JSON 키 이름과 값 타입(`null` / `bool` / `float`) 엄수
 - **drop 플래그 초기화 규칙**: `dead_cross` 발생 시 `drop_10_alerted` / `drop_20_alerted`는 초기화되지 않음. 오직 가격 회복(`is_52w_drop_10_alert=False`) 시에만 초기화 (`alert_job.py` 참고)
