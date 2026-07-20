@@ -3,7 +3,7 @@
 ## 프로젝트 개요
 
 나스닥100 ETF(QQQ)의 이동평균선 크로스오버 및 52주 신고가 대비 하락을 감지해 텔레그램으로 알림을 발송하는 봇.
-GitHub Actions로 월~토 KST 07:30(UTC 22:30)에 자동 실행된다.
+로컬 PC의 Windows 작업 스케줄러로 월~토 KST 06:00에 자동 실행된다 (GitHub Actions는 `workflow_dispatch` 수동/백업용으로만 유지).
 
 대상 종목: **KODEX 미국나스닥100 레버리지(합성 H) (409820)**
 
@@ -20,6 +20,8 @@ python test_scenarios.py        # 전체 시나리오
 python test_scenarios.py 1      # 특정 시나리오만
 python alert_job.py             # 실제 실행
 ```
+
+자동 실행은 Windows 작업 스케줄러 작업 `QQQAlert`(월~토 06:00)가 `run_alert.ps1`을 호출해 처리한다. 등록/확인 방법은 `README.md`의 "로컬 자동 실행" 항목 참고.
 
 ## 테스트 시나리오
 
