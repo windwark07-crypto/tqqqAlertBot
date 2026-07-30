@@ -51,7 +51,7 @@ _TEMPLATES: dict[SignalType, str] = {
         "• {short_period}일 MA: <b>${short_ma:.2f}</b>\n"
         "• {long_period}일 MA: <b>${long_ma:.2f}</b>\n"
         "\n"
-        "💡 KODEX 미국나스닥100 레버리지(합성 H)(409820) 전액 매수!!\n"
+        "💡 KODEX 미국나스닥100 (379810) 전액 매수!!\n"
     ),
     "dead_cross": (
         "🔴 <b>[나스닥100 데드크로스 발생]</b>\n"
@@ -63,7 +63,7 @@ _TEMPLATES: dict[SignalType, str] = {
         "• {short_period}일 MA: <b>${short_ma:.2f}</b>\n"
         "• {long_period}일 MA: <b>${long_ma:.2f}</b>\n"
         "\n"
-        "⚠️ KODEX 미국나스닥100 레버리지(합성 H)(409820) 전액 매도!!"
+        "⚠️ KODEX 미국나스닥100 (379810) 전액 매도!!"
     ),
     "above": (
         "🔵 <b>[나스닥100 MA 현황]</b>\n"
@@ -102,7 +102,7 @@ _DROP_TEMPLATES: dict[int, str] = {
         "• 금일 종가: <b>${current_price:.2f}</b>\n"
         "• 52주 최고가: <b>${high_52w:.2f}</b>\n"
         "\n"
-        "💡 KODEX 미국나스닥100 레버리지(합성 H)(409820) 총 보유금의 30% 매수!!"
+        "💡 KODEX 미국나스닥100 (379810) 총 보유금의 10% 매수!!"
     ),
     20: (
         "🚨 <b>[나스닥100 52주 최고가 대비 -20% 하락]</b>\n"
@@ -113,7 +113,7 @@ _DROP_TEMPLATES: dict[int, str] = {
         "• 금일 종가: <b>${current_price:.2f}</b>\n"
         "• 52주 최고가: <b>${high_52w:.2f}</b>\n"
         "\n"
-        "💡 KODEX 미국나스닥100 레버리지(합성 H)(409820) 보유금의 30% 추가 매수!!(총 60%)"
+        "💡 KODEX 미국나스닥100 (379810) 보유금의 20% 추가 매수!!"
     ),
 }
 
@@ -127,8 +127,6 @@ _QQQ_8PCT_TEMPLATE = (
     "• 금일 종가: <b>${qqq_price:.2f}</b>\n"
     "• {short_period}일 MA: <b>${short_ma:.2f}</b>\n"
     "• {long_period}일 MA: <b>${long_ma:.2f}</b>\n"
-    "\n"
-    "💡 KODEX 미국나스닥100 레버리지(합성 H)(409820) 보유량의 30% 매도!!"
 )
 
 
