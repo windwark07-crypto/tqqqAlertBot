@@ -21,7 +21,7 @@ python test_scenarios.py 1      # 특정 시나리오만
 python alert_job.py             # 실제 실행
 ```
 
-자동 실행은 Windows 작업 스케줄러 작업 `QQQAlert`(월~토 06:00)가 `run_alert.ps1`을 호출해 처리한다. 등록/확인 방법은 `README.md`의 "로컬 자동 실행" 항목 참고.
+자동 실행은 Windows 작업 스케줄러 작업 `QQQAlert`(월~토 06:00)가 `run_alert.ps1`을 호출해 처리한다. `run_alert.ps1`은 venv Python이 아니라 PyInstaller로 빌드한 `qqq_alert.exe`(프로젝트 루트, git 미포함)를 실행한다. 등록/확인 방법은 `README.md`의 "로컬 자동 실행" 항목, exe 재빌드 방법은 "패키징" 항목 참고.
 
 ## 테스트 시나리오
 
