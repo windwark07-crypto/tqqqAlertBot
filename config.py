@@ -7,10 +7,12 @@ GitHub Actions: Secrets → env 블록 → os.environ
 import os
 from functools import lru_cache
 
+from paths import base_dir
+
 # 로컬 .env가 있으면 로드, 없으면(GitHub Actions 등) 조용히 무시
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(dotenv_path=base_dir() / ".env")
 except ImportError:
     pass
 

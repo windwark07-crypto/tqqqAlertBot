@@ -16,6 +16,10 @@ from ma_calculator import calculate_signals
 from notifier import dispatch_notification, NotificationKind
 import state_manager
 
+# PyInstaller exe 실행 시 시스템 코드페이지(cp949)로 인코딩되어 로그가 깨지는 것을 방지
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",

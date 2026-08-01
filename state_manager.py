@@ -6,12 +6,13 @@ state.json을 레포지토리에 커밋해 상태를 유지한다.
 """
 import json
 import logging
-from pathlib import Path
 from typing import TypedDict
+
+from paths import base_dir
 
 logger = logging.getLogger(__name__)
 
-STATE_FILE = Path(__file__).parent / "state.json"
+STATE_FILE = base_dir() / "state.json"
 
 
 class AlertState(TypedDict):

@@ -13,6 +13,12 @@ venv/
 env/
 ENV/
 
+# PyInstaller 빌드 산출물 (로컬에서 빌드해 사용, 커밋 대상 아님)
+build/
+dist/
+*.spec
+qqq_alert.exe
+
 # IDE
 .vscode/
 .idea/
