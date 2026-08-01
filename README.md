@@ -57,9 +57,24 @@ python test_scenarios.py        # 시나리오 테스트 (API 호출 없음)
 python test_scenarios.py 1      # 특정 시나리오만 실행
 ```
 
+## 패키징 (단일 실행파일)
+
+venv/Python 설치 없이 실행할 수 있도록 PyInstaller로 단일 exe를 빌드할 수 있다.
+
+```bash
+source venv/Scripts/activate
+pip install pyinstaller
+pyinstaller --onefile --name qqq_alert --collect-all tzdata alert_job.py
+cp dist/qqq_alert.exe .   # 프로젝트 루트로 이동 (.env, state.json과 같은 위치여야 함)
+```
+
+- `qqq_alert.exe`는 `.env`, `state.json`과 반드시 **같은 디렉터리**에 있어야 한다 (`paths.py`가 exe 자신의 위치를 기준으로 두 파일을 찾음)
+- 재빌드가 필요한 경우: 코드 변경 시마다 위 명령을 다시 실행
+- 빌드 산출물(`build/`, `dist/`, `*.spec`, `qqq_alert.exe`)은 git에 커밋하지 않음 (`.gitignore` 처리됨)
+
 ## 로컬 자동 실행 (Windows 작업 스케줄러)
 
-`run_alert.ps1`이 venv의 Python으로 `alert_job.py`를 실행하고 결과를 `logs/alert_YYYYMMDD_HHMMSS.log`에 남긴다.
+`run_alert.ps1`이 `qqq_alert.exe`를 실행하고 결과를 `logs/alert_YYYYMMDD_HHMMSS.log`에 남긴다.
 
 ```powershell
 # 작업 스케줄러 등록 (최초 1회, PowerShell)
@@ -85,9 +100,10 @@ Register-ScheduledTask -TaskName "QQQAlert" -Action $action -Trigger $trigger -S
 | `notifier.py` | 텔레그램 알림 메시지 템플릿 및 발송 로직 |
 | `state_manager.py` | state.json 로드/저장, 상태 플래그 관리 |
 | `config.py` | 환경변수 로더 (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, POLYGON_API_KEY, SYMBOL, SHORT_MA, LONG_MA) |
+| `paths.py` | 실행 위치 판별 유틸 — PyInstaller exe로 빌드됐을 때도 `.env`/`state.json`을 exe 옆에서 찾도록 처리 |
 | `state.json` | 크로스 발생 이력 및 알림 발송 플래그 영속 저장 (GitHub에 커밋됨) |
 | `test_scenarios.py` | 실제 API 호출 없이 더미 MAResult로 텔레그램 메시지 발송 테스트 |
-| `run_alert.ps1` | 로컬 자동 실행 래퍼 — venv Python으로 `alert_job.py` 실행 후 `logs/`에 로그 저장 (Windows 작업 스케줄러가 호출) |
+| `run_alert.ps1` | 로컬 자동 실행 래퍼 — `qqq_alert.exe` 실행 후 `logs/`에 로그 저장 (Windows 작업 스케줄러가 호출) |
 | `.github/workflows/qqq_alert.yml` | GitHub Actions 워크플로 정의 (현재는 `workflow_dispatch` 수동/백업 실행만 활성화) |
 
 ## 핵심 설정값
